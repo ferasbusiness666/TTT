@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tadele Teen Talks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,500;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+<style>
+/* =====================================================================
+   TADELE TEEN TALKS — CORE DESIGN SYSTEM  (v2)
+   ---------------------------------------------------------------------
+   Single source of truth. Every page (articles, videos, artwork,
+   founders) imports these tokens so the platform speaks one language.
+   Content drives layout: cards are flexible (min-height + line-clamp +
+   clamp() type), never fixed to a single placeholder length.
+   ===================================================================== */
+:root {
+  /* ---- COLOR · surfaces & ink -------------------------------------- */
+  --ttt-bg:        #F5EDD8;  /* warm newsprint cream — page background    */
+  --ttt-dark:      #1A0F05;  /* near-black — text, borders, fills         */
+  --ttt-muted:     #7A5A3A;  /* muted brown — secondary text, nav, meta   */
+  --ttt-red:       #D42B4F;  /* red accent — highlights, CTAs, links      */
+  --ttt-red-deep:  #B01E40;  /* darker red — hover on red surfaces        */
+  --ttt-paper:     #FFFFFF;  /* white — search bar, badges, polaroids     */
+
+  /* ---- COLOR · editorial card palette ------------------------------ *
+   * v2: pushed more saturated / vibrant than the original pastels.     */
+  --card-peach:    #F4A26B;  /* was #F5C9A8 */
+  --card-pink:     #F2A0B5;  /* was #F2BFCA */
+  --card-blue:     #88BEDD;  /* was #B0CCDF */
+  --card-mint:     #6FC9A0;  /* was #AEDACA */
+  --card-yellow:   #F1D24E;  /* was #EEE0A5 */
+  --card-lavender: #B496E2;  /* was #CEBFE0 */
+
+  /* ---- TYPE · families --------------------------------------------- */
+  --font-display:  'Bebas Neue', 'Arial Narrow', sans-serif; /* masthead, labels, tags */
+  --font-serif:    'Playfair Display', Georgia, serif;       /* titles, pull quotes    */
+  --font-sans:     'DM Sans', system-ui, sans-serif;         /* nav, body, meta        */
+
+  /* ---- TYPE · tracking --------------------------------------------- */
+  --track-label:   0.18em;
+  --track-tab:     0.04em;
+
+  /* ---- FORM · borders, radius, shadow ------------------------------ */
+  --line:          1.5px solid var(--ttt-dark);
+  --radius-card:   12px;
+  --radius-pill:   100px;
+  --shadow-print:  5px 5px 0 var(--ttt-dark);   /* flat print shadow, no blur */
+  --lift:          translateY(-4px);
+
+  /* ---- SPACING ----------------------------------------------------- */
+  --gap-grid:      14px;
+  --pad-card:      18px;
+  --pad-page:      clamp(16px, 4vw, 40px);
+  --section-y:     clamp(40px, 6vw, 72px);   /* vertical rhythm between sections */
+  --cell-min:      185px;                    /* min bento row height; grows w/ content */
+  --maxw:          1320px;                   /* content max width */
+}
+
+/* =====================================================================
+   RESET & BASE
+   ===================================================================== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; overflow-anchor: none; }
+body {
+  background: var(--ttt-bg);
+  color: var(--ttt-dark);
+  font-family: var(--font-sans);
+  background-image: radial-gradient(rgba(26,15,5,0.025) 1px, transparent 1px);
+  background-size: 4px 4px;
+  -webkit-font-smoothing: antialiased;
+}
+img { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; }
+.star { color: var(--ttt-red); }
+
+/* width container helper */
+.wrap { max-width: var(--maxw); margin: 0 auto; }
+
+/* ---- reusable image media slot ----------------------------------- *
+ * Any real <img> dropped inside fills the box via object-fit:cover,   *
+ * so varying photo dimensions never distort the layout.               */
+.media { position: relative; width: 100%; overflow: hidden; background: rgba(26,15,5,0.06); }
+.media > img { width: 100%; height: 100%; object-fit: cover; }
+.media.r-16-9 { aspect-ratio: 16 / 9; }
+.media.r-4-3  { aspect-ratio: 4 / 3; }
+.media.r-1-1  { aspect-ratio: 1 / 1; }
+/* striped placeholder fill (remove once a real <img> is supplied) */
+.media.ph {
+  background-image: repeating-linear-gradient(-45deg,
+    transparent, transparent 8px,
+    rgba(26,15,5,0.08) 8px, rgba(26,15,5,0.08) 9px);
+  display: grid; place-items: center;
+}
+.media.ph code {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 10px; color: var(--ttt-muted); letter-spacing: 0.04em;
+  background: var(--ttt-bg); padding: 3px 7px; border-radius: 3px;
+}
+
+/* =====================================================================
+   HEADER — sticky masthead
+   ===================================================================== */
+.masthead {
+  position: sticky; top: 0; z-index: 50;
+  background: var(--ttt-bg);
+  padding: 16px var(--pad-page) 0;
+  border-bottom: var(--line);
+  box-shadow: 0 3px 0 var(--ttt-red);  /* bold red baseline under the head */
+}
+.masthead__top {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 24px; max-width: var(--maxw); margin: 0 auto;
+}
+
+/* ---- compact masthead (scrolled) ----------------------------------- *
+ * Away from the top the header melts into one slim row: tabs (left) +  *
+ * search (right). Every property involved (max-height, max-width,      *
+ * opacity, margin, padding, gap) is transitionable, so the collapse    *
+ * animates smoothly instead of snapping between two layouts.           */
+.masthead { transition: padding 0.32s ease; }
+.brand {
+  max-height: 110px; overflow: hidden;
+  transition: max-height 0.32s ease, opacity 0.2s ease, transform 0.32s ease;
+}
+.masthead.is-compact { padding-top: 10px; }
+.masthead.is-compact .brand { max-height: 0; opacity: 0; transform: translateY(-12px); }
+.masthead.is-compact .login,
+.masthead.is-compact .logo-badge {
+  max-width: 0; opacity: 0; padding-left: 0; padding-right: 0;
+  border-width: 0; overflow: hidden;
+}
+.masthead.is-compact .head-tools { padding-bottom: 0; gap: 0; }
+/* pull the tab row up beside the search pill → one slim visual row */
+@media (min-width: 481px) {
+  .masthead.is-compact .nav {
+    margin-top: -34px; padding-top: 0; padding-bottom: 12px;
+    padding-right: clamp(195px, 23vw, 300px);
+  }
+}
+@media (max-width: 480px) {
+  .masthead.is-compact .nav { padding-top: 2px; padding-bottom: 10px; }
+}
+.brand { min-width: 0; }
+.ticker {
+  font-family: var(--font-display); font-size: 11px; letter-spacing: 3px;
+  color: var(--ttt-muted);
+  display: flex; align-items: center; gap: 8px;
+  white-space: nowrap; overflow: hidden;
+}
+.ticker .sep { opacity: 0.5; }
+.wordmark {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 7vw, 58px); line-height: 0.92;
+  color: var(--ttt-dark); letter-spacing: 0.01em; margin-top: 2px;
+}
+
+/* search + login + logo cluster */
+.head-tools {
+  display: flex; align-items: center; gap: 12px; flex-shrink: 0; padding-bottom: 6px;
+  transition: gap 0.32s ease, padding 0.32s ease;
+}
+.search {
+  display: flex; align-items: center; gap: 9px;
+  background: var(--ttt-paper); border: var(--line);
+  border-radius: var(--radius-pill); padding: 9px 18px;
+  width: clamp(170px, 20vw, 270px); transition: box-shadow 0.15s ease;
+}
+.search:focus-within { box-shadow: var(--shadow-print); }
+.search svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--ttt-dark); }
+.search input {
+  border: none; outline: none; background: transparent;
+  font-family: var(--font-sans); font-size: 14px; color: var(--ttt-dark); width: 100%;
+}
+.search input::placeholder { color: var(--ttt-muted); opacity: 0.8; }
+
+/* LOGIN — press-badge / stamp pill */
+.login {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-display); font-size: 16px; letter-spacing: 0.12em;
+  color: var(--ttt-bg); background: var(--ttt-dark);
+  border: var(--line); border-radius: var(--radius-pill);
+  padding: 8px 16px 6px; cursor: pointer; max-width: 200px; white-space: nowrap;
+  transform: rotate(-2deg);  /* hand-stamped tilt */
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease,
+              max-width 0.32s ease, opacity 0.2s ease, padding 0.32s ease;
+}
+.login::before { content: "★"; color: var(--ttt-red); font-size: 12px; }
+.login svg { width: 13px; height: 13px; }
+.login:hover {
+  transform: rotate(-2deg) translateY(-2px);
+  box-shadow: 3px 3px 0 var(--ttt-red);
+  background: #2c1a0c;
+}
+
+/* circular TTT badge */
+.logo-badge {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: var(--line); background: var(--ttt-paper);
+  display: grid; place-items: center; text-align: center; flex-shrink: 0;
+  max-width: 44px;
+  transition: transform 0.15s ease, max-width 0.32s ease, opacity 0.2s ease;
+}
+.logo-badge:hover { transform: rotate(-6deg); }
+.logo-badge span {
+  font-family: var(--font-serif); font-weight: 800; font-size: 8px;
+  line-height: 0.95; color: var(--ttt-dark); letter-spacing: -0.02em;
+}
+
+/* nav tabs */
+.nav {
+  display: flex; gap: 9px; padding: 13px 0 14px; flex-wrap: wrap; max-width: var(--maxw); margin: 0 auto;
+  transition: margin 0.32s ease, padding 0.32s ease;
+}
+.tab {
+  font-family: var(--font-display); font-size: 16px; letter-spacing: var(--track-tab);
+  color: var(--ttt-muted); background: transparent; border: var(--line);
+  border-radius: var(--radius-pill); padding: 6px 20px 4px; cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.12s ease; line-height: 1;
+}
+.tab:hover { transform: translateY(-1px); }
+.tab:hover, .tab.is-active { background: var(--ttt-dark); color: var(--ttt-bg); }
+
+/* =====================================================================
+   SECTION LABEL ROW  (reusable across the whole page)
+   "★ ★ ★  TITLE  ———  META  ★ ★ ★"
+   ===================================================================== */
+.section-label {
+  display: flex; align-items: center; gap: 16px;
+  padding: var(--section-y) var(--pad-page) 18px;
+  max-width: var(--maxw); margin: 0 auto;
+  font-family: var(--font-display); font-size: 15px; letter-spacing: 3px;
+  color: var(--ttt-muted);
+}
+.section-label .stars { letter-spacing: 2px; }
+.section-label .title {
+  white-space: nowrap; color: var(--ttt-dark);
+  font-size: clamp(20px, 3vw, 30px); letter-spacing: 2px;
+}
+.section-label .rule { flex: 1; height: 2px; background: var(--ttt-dark); }
+.section-label .meta { white-space: nowrap; color: var(--ttt-red); }
+
+/* tighten the very first label (sits just under masthead) */
+.section-label.first { padding-top: clamp(22px, 3vw, 34px); }
+
+/* =====================================================================
+   FLEXIBLE BENTO GRID  (Trending Now)
+   ---------------------------------------------------------------------
+   Editorial flow, NOT a rigid fixed-row bento:
+   - grid-auto-rows: minmax(min, auto) → rows grow with content
+   - featured spans 2×2 but dominates through type/treatment, not pixels
+   - on smaller screens cards collapse to natural columns & stack
+   ===================================================================== */
+.bento {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-auto-rows: minmax(var(--cell-min), auto);
+  gap: var(--gap-grid);
+  padding: 0 var(--pad-page);
+  max-width: var(--maxw); margin: 0 auto;
+}
+
+/* ---- base card --------------------------------------------------- */
+.card {
+  position: relative;
+  border: var(--line); border-radius: var(--radius-card);
+  padding: var(--pad-card);
+  min-height: var(--cell-min);          /* min, not fixed — content can grow */
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.card:hover { transform: var(--lift); box-shadow: var(--shadow-print); }
+
+/* color modifiers */
+.c-peach    { background: var(--card-peach); }
+.c-pink     { background: var(--card-pink); }
+.c-blue     { background: var(--card-blue); }
+.c-mint     { background: var(--card-mint); }
+.c-yellow   { background: var(--card-yellow); }
+.c-lavender { background: var(--card-lavender); }
+
+/* tag (Bebas pill) — sits at top */
+.card .tag {
+  font-family: var(--font-display); font-size: 13px; letter-spacing: 2px;
+  color: var(--ttt-dark); display: inline-flex; align-items: center; gap: 6px;
+  align-self: flex-start;
+  background: rgba(255,255,255,0.6); border: 1.5px solid var(--ttt-dark);
+  border-radius: var(--radius-pill); padding: 3px 11px 1px;
+  position: relative; z-index: 2; white-space: nowrap;
+}
+
+/* title (Playfair) — clamps so it never overflows */
+.card .title {
+  font-family: var(--font-serif); font-weight: 700;
+  font-size: clamp(16px, 1.5vw, 19px); line-height: 1.14;
+  color: var(--ttt-dark); margin-top: 10px;
+  position: relative; z-index: 2; text-wrap: pretty;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* byline — pinned to the bottom regardless of title length */
+.card .byline {
+  font-family: var(--font-sans); font-size: 12px; font-weight: 500;
+  color: var(--ttt-dark); opacity: 0.8; margin-top: auto; padding-top: 10px;
+  position: relative; z-index: 2;
+}
+
+/* faint decorative corner glyph */
+.card .glyph {
+  position: absolute; top: -14px; right: -6px;
+  font-family: var(--font-display); font-size: 92px; line-height: 1;
+  color: rgba(26,15,5,0.10); pointer-events: none; z-index: 1;
+}
+
+/* card placement */
+.k-opinionvideo { grid-column: 1;     grid-row: 1; }
+.k-featured     { grid-column: 2 / 4; grid-row: 1 / 3; }
+.k-artwork      { grid-column: 4;     grid-row: 1; }
+.k-review       { grid-column: 5;     grid-row: 1; }
+.k-photography  { grid-column: 1;     grid-row: 2; }
+.k-newsvideo    { grid-column: 4;     grid-row: 2; }
+.k-opinionart   { grid-column: 5;     grid-row: 2; }
+
+/* ---- FEATURED hero — dominant via treatment, not just span -------- */
+.k-featured { padding: 26px; border-width: 2.5px; }
+.k-featured .glyph { font-size: 230px; top: -42px; right: -20px; color: rgba(26,15,5,0.09); }
+.k-featured .tag { font-size: 14px; background: var(--ttt-dark); color: var(--ttt-bg); }
+.k-featured .tag .star { color: var(--ttt-red); }
+.k-featured .title {
+  font-size: clamp(24px, 2.6vw, 34px); font-weight: 800; line-height: 1.03;
+  margin-top: 14px; -webkit-line-clamp: 3;
+}
+.k-featured .sub {
+  font-family: var(--font-serif); font-style: italic;
+  font-size: clamp(15px, 1.5vw, 19px); color: var(--ttt-dark); opacity: 0.85;
+  margin-top: 12px; position: relative; z-index: 2; text-wrap: pretty;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.k-featured .byline { font-size: 13px; }
+/* polaroid needs real width: show it only ≥1100px, and only then
+   reserve right-side clearance so text never runs underneath it */
+@media (max-width: 1099px) {
+  .polaroid { display: none; }
+}
+@media (min-width: 1100px) {
+  .k-featured .title,
+  .k-featured .sub { margin-right: 180px; }
+}
+
+/* polaroid photo inside featured */
+.polaroid {
+  background: var(--ttt-paper); border: var(--line);
+  padding: 7px 7px 22px; width: 150px;
+  transform: rotate(-3deg); box-shadow: 3px 3px 0 rgba(26,15,5,0.2);
+  position: absolute; top: 86px; right: 24px; z-index: 3;
+}
+.polaroid .cap {
+  font-family: var(--font-sans); font-size: 10px; color: var(--ttt-muted);
+  text-align: center; margin-top: 6px; letter-spacing: 0.04em;
+}
+
+/* =====================================================================
+   SECTION 1 — VIDEOS & BLOGS  (horizontal scroll rail)
+   ===================================================================== */
+.rail {
+  display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory;
+  padding: 4px var(--pad-page) 20px;
+  max-width: var(--maxw); margin: 0 auto;
+  scrollbar-width: thin; scrollbar-color: var(--ttt-muted) transparent;
+}
+.rail::-webkit-scrollbar { height: 8px; }
+.rail::-webkit-scrollbar-thumb { background: var(--ttt-muted); border-radius: 100px; }
+.vcard {
+  flex: 0 0 300px; scroll-snap-align: start;
+  border: var(--line); border-radius: var(--radius-card);
+  overflow: hidden; background: var(--ttt-paper);
+  display: flex; flex-direction: column; cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.vcard:hover { transform: var(--lift); box-shadow: var(--shadow-print); }
+.vcard .media { border-bottom: var(--line); }
+/* play overlay on the thumbnail */
+.vcard .media::after {
+  content: ""; position: absolute; inset: 0; margin: auto;
+  width: 52px; height: 52px; border-radius: 50%;
+  border: var(--line); background: rgba(255,255,255,0.85);
+}
+.vcard .media .tri {
+  position: absolute; inset: 0; margin: auto; z-index: 2;
+  width: 0; height: 0; transform: translateX(2px);
+  border-left: 15px solid var(--ttt-dark);
+  border-top: 9px solid transparent; border-bottom: 9px solid transparent;
+}
+.vcard .body { padding: 16px; display: flex; flex-direction: column; flex: 1; }
+.vcard .tag {
+  font-family: var(--font-display); font-size: 12px; letter-spacing: 2px;
+  align-self: flex-start; border: 1.5px solid var(--ttt-dark);
+  border-radius: var(--radius-pill); padding: 2px 10px 0; margin-bottom: 10px;
+}
+.vcard .title {
+  font-family: var(--font-serif); font-weight: 700;
+  font-size: clamp(17px, 1.6vw, 20px); line-height: 1.15; text-wrap: pretty;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.vcard .byline {
+  font-family: var(--font-sans); font-size: 12px; font-weight: 500;
+  color: var(--ttt-muted); margin-top: auto; padding-top: 12px;
+}
+/* color the tag chips per card via the colour modifiers on .vcard */
+.vcard.c-peach .tag    { background: var(--card-peach); }
+.vcard.c-pink .tag     { background: var(--card-pink); }
+.vcard.c-blue .tag     { background: var(--card-blue); }
+.vcard.c-mint .tag     { background: var(--card-mint); }
+.vcard.c-yellow .tag   { background: var(--card-yellow); }
+.vcard.c-lavender .tag { background: var(--card-lavender); }
+
+/* =====================================================================
+   SECTION 2 — LATEST ARTICLES  (editorial grid, mixed sizes)
+   ===================================================================== */
+.articles {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+  padding: 0 var(--pad-page); max-width: var(--maxw); margin: 0 auto;
+}
+.acard {
+  border: var(--line); border-radius: var(--radius-card);
+  overflow: hidden; background: var(--ttt-paper);
+  display: flex; flex-direction: column; cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.acard:hover { transform: var(--lift); box-shadow: var(--shadow-print); }
+.acard .media { border-bottom: var(--line); }
+.acard .body { padding: 18px; display: flex; flex-direction: column; flex: 1; }
+.acard .pill {
+  font-family: var(--font-display); font-size: 12px; letter-spacing: 2px;
+  align-self: flex-start; border: 1.5px solid var(--ttt-dark);
+  border-radius: var(--radius-pill); padding: 2px 11px 0; margin-bottom: 12px;
+}
+.acard .title {
+  font-family: var(--font-serif); font-weight: 700;
+  font-size: clamp(18px, 1.8vw, 22px); line-height: 1.14; text-wrap: pretty;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.acard .desc {
+  font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+  color: var(--ttt-dark); opacity: 0.78; margin-top: 10px; text-wrap: pretty;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.acard .meta {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-sans); font-size: 12px; font-weight: 500;
+  color: var(--ttt-muted); margin-top: auto; padding-top: 16px;
+}
+.acard .meta .dot { opacity: 0.5; }
+
+/* lead article — spans 2 cols, photo beside text on wide screens */
+.acard.lead { grid-column: span 2; }
+.acard.lead .pill { background: var(--card-pink); }
+@media (min-width: 769px) {
+  .acard.lead { flex-direction: row; }
+  .acard.lead .media { border-bottom: none; border-right: var(--line); flex: 0 0 46%; aspect-ratio: auto; }
+  .acard.lead .title { font-size: clamp(22px, 2.4vw, 30px); -webkit-line-clamp: 3; }
+  .acard.lead .desc { -webkit-line-clamp: 3; }
+}
+/* tint the small-card pills so colour carries through the section */
+.acard:nth-child(2) .pill { background: var(--card-blue); }
+.acard:nth-child(3) .pill { background: var(--card-yellow); }
+.acard:nth-child(4) .pill { background: var(--card-mint); }
+.acard:nth-child(5) .pill { background: var(--card-lavender); }
+.acard:nth-child(6) .pill { background: var(--card-peach); }
+
+/* =====================================================================
+   SECTION 3 — ART & PHOTOGRAPHY  (masonry gallery wall)
+   ===================================================================== */
+.gallery {
+  columns: 4; column-gap: 16px;
+  padding: 0 var(--pad-page); max-width: var(--maxw); margin: 0 auto;
+}
+.gitem {
+  break-inside: avoid; margin-bottom: 16px;
+  position: relative; border: var(--line); border-radius: var(--radius-card);
+  overflow: hidden; cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.gitem:hover { transform: var(--lift); box-shadow: var(--shadow-print); }
+.gitem .media { aspect-ratio: auto; }   /* heights vary → masonry feel */
+.gitem .cap {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 28px 14px 12px;
+  background: linear-gradient(to top, rgba(26,15,5,0.78), rgba(26,15,5,0));
+  color: var(--ttt-bg);
+}
+.gitem .cap .t {
+  font-family: var(--font-serif); font-weight: 700; font-size: 16px; line-height: 1.15;
+}
+.gitem .cap .a {
+  font-family: var(--font-sans); font-size: 12px; opacity: 0.85; margin-top: 3px;
+}
+
+/* =====================================================================
+   SECTION 4 — MEET THE FOUNDERS
+   ===================================================================== */
+.founders-head {
+  text-align: center; padding: var(--section-y) var(--pad-page) 6px;
+}
+.founders-head h2 {
+  font-family: var(--font-display); font-size: clamp(40px, 7vw, 78px);
+  line-height: 0.92; letter-spacing: 0.01em; color: var(--ttt-dark);
+}
+.founders-head p {
+  font-family: var(--font-serif); font-style: italic;
+  font-size: clamp(15px, 1.6vw, 19px); color: var(--ttt-muted); margin-top: 6px;
+}
+.founders {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
+  padding: 28px var(--pad-page) 0; max-width: var(--maxw); margin: 0 auto;
+}
+.fcard {
+  border: var(--line); border-radius: var(--radius-card);
+  background: var(--ttt-paper); padding: 24px 20px; text-align: center;
+  display: flex; flex-direction: column; align-items: center;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.fcard:hover { transform: var(--lift); box-shadow: var(--shadow-print); }
+.fcard .avatar {
+  width: 96px; height: 96px; border-radius: 50%; border: var(--line);
+  display: grid; place-items: center; overflow: hidden;
+  font-family: var(--font-display); font-size: 36px; color: var(--ttt-dark);
+}
+.fcard .avatar.c-peach    { background: var(--card-peach); }
+.fcard .avatar.c-pink     { background: var(--card-pink); }
+.fcard .avatar.c-mint     { background: var(--card-mint); }
+.fcard .avatar.c-lavender { background: var(--card-lavender); }
+.fcard .name {
+  font-family: var(--font-serif); font-weight: 800; font-size: 21px;
+  margin-top: 16px; color: var(--ttt-dark);
+}
+.fcard .role {
+  font-family: var(--font-sans); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase; color: var(--ttt-red); margin-top: 4px;
+}
+.fcard .bio {
+  font-family: var(--font-sans); font-size: 13px; line-height: 1.5;
+  color: var(--ttt-muted); margin-top: 10px; text-wrap: pretty;
+}
+
+/* =====================================================================
+   SECTION 5 — NEWSLETTER STRIP  (full-width red banner)
+   ===================================================================== */
+.newsletter {
+  background: var(--ttt-red); color: var(--ttt-paper);
+  border-top: var(--line); border-bottom: var(--line);
+  margin-top: var(--section-y); padding: clamp(40px, 6vw, 64px) var(--pad-page);
+  position: relative; overflow: hidden;
+}
+.newsletter::before {        /* faint oversized star, decorative */
+  content: "★"; position: absolute; top: -40px; right: 2%;
+  font-family: var(--font-display); font-size: 320px; line-height: 1;
+  color: rgba(255,255,255,0.08); pointer-events: none;
+}
+.newsletter .nl-inner {
+  max-width: 880px; margin: 0 auto; text-align: center; position: relative; z-index: 2;
+}
+.newsletter h2 {
+  font-family: var(--font-display); font-size: clamp(40px, 7vw, 76px);
+  line-height: 0.95; letter-spacing: 0.02em;
+}
+.newsletter p {
+  font-family: var(--font-sans); font-size: clamp(14px, 1.5vw, 16px);
+  opacity: 0.92; margin-top: 8px;
+}
+.nl-form {
+  display: flex; gap: 10px; margin: 22px auto 0; max-width: 520px;
+}
+.nl-form input {
+  flex: 1; border: var(--line); border-radius: var(--radius-pill);
+  padding: 13px 20px; font-family: var(--font-sans); font-size: 15px;
+  background: var(--ttt-paper); color: var(--ttt-dark); outline: none; min-width: 0;
+}
+.nl-form button {
+  font-family: var(--font-display); font-size: 18px; letter-spacing: 0.08em;
+  color: var(--ttt-red); background: var(--ttt-paper);
+  border: var(--line); border-radius: var(--radius-pill);
+  padding: 13px 26px 11px; cursor: pointer; white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.nl-form button:hover { transform: translateY(-2px); box-shadow: 4px 4px 0 var(--ttt-dark); }
+
+/* =====================================================================
+   FOOTER — dark
+   ===================================================================== */
+.site-footer {
+  background: var(--ttt-dark); color: var(--ttt-bg);
+  padding: clamp(36px, 5vw, 56px) var(--pad-page) 28px;
+}
+.footer-grid {
+  display: flex; align-items: center; justify-content: space-between; gap: 24px;
+  max-width: var(--maxw); margin: 0 auto; flex-wrap: wrap;
+}
+.site-footer .fwordmark {
+  font-family: var(--font-display); font-size: clamp(26px, 4vw, 40px);
+  line-height: 0.95; color: var(--ttt-bg);
+}
+.site-footer .flinks { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+.site-footer .flinks a {
+  font-family: var(--font-display); font-size: 16px; letter-spacing: 0.06em;
+  color: var(--ttt-bg); opacity: 0.85; transition: color 0.15s ease, opacity 0.15s ease;
+}
+.site-footer .flinks a:hover { color: var(--ttt-red); opacity: 1; }
+/* ---- footer social cluster — Discord first ------------------------ */
+.fsocial-block { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.discord-btn {
+  display: inline-flex; align-items: center; gap: 9px;
+  font-family: var(--font-display); font-size: 17px; letter-spacing: 0.08em;
+  color: var(--ttt-bg); background: var(--ttt-red);
+  border: 1.5px solid var(--ttt-bg); border-radius: var(--radius-pill);
+  padding: 9px 20px 7px; cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.discord-btn svg { width: 19px; height: 19px; fill: currentColor; }
+.discord-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 3px 3px 0 var(--ttt-bg);
+  background: var(--ttt-red-deep);
+}
+.social-row { display: flex; gap: 10px; }
+.sbtn {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1.5px solid var(--ttt-bg); color: var(--ttt-bg);
+  display: grid; place-items: center;
+  transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.sbtn svg { width: 17px; height: 17px; fill: currentColor; }
+.sbtn:hover { background: var(--ttt-bg); color: var(--ttt-dark); transform: translateY(-2px); }
+.site-footer .handle {
+  font-family: var(--font-display); font-size: 13px; letter-spacing: 2px; color: var(--card-peach);
+}
+.footer-base {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  max-width: var(--maxw); margin: 26px auto 0; padding-top: 18px;
+  border-top: 1.5px solid rgba(245,237,216,0.25); flex-wrap: wrap;
+}
+.footer-base .tagline {
+  font-family: var(--font-serif); font-style: italic; font-size: 16px; color: var(--ttt-bg); opacity: 0.85;
+}
+.footer-base .copy {
+  font-family: var(--font-display); font-size: 13px; letter-spacing: 2px;
+  color: var(--ttt-bg); opacity: 0.6;
+}
+
+/* =====================================================================
+   RESPONSIVE
+   ===================================================================== */
+
+/* TABLET — 2-col bento (featured spans both), 2-col articles & founders */
+@media (max-width: 900px) {
+  .articles { grid-template-columns: repeat(2, 1fr); }
+  .acard.lead { grid-column: span 2; }
+  .gallery { columns: 3; }
+  .founders { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .bento { grid-template-columns: 1fr 1fr; }
+  .k-opinionvideo, .k-artwork, .k-review,
+  .k-photography, .k-newsvideo, .k-opinionart { grid-column: auto; grid-row: auto; }
+  .k-featured { grid-column: 1 / 3; grid-row: auto; }
+  .section-label .meta { display: none; }
+  .acard.lead { flex-direction: column; }
+}
+
+/* MOBILE — single column everywhere; search hidden, login stays */
+@media (max-width: 480px) {
+  .bento { grid-template-columns: 1fr; }
+  .k-featured { grid-column: 1; }
+  .search { display: none; }
+  .masthead__top { align-items: center; }
+  .section-label .rule { display: none; }
+  .wordmark { font-size: clamp(34px, 11vw, 48px); }
+  .articles { grid-template-columns: 1fr; }
+  .acard.lead { grid-column: auto; }
+  .gallery { columns: 2; }
+  .founders { grid-template-columns: 1fr; }
+  .nl-form { flex-direction: column; }
+  .footer-grid, .footer-base { flex-direction: column; text-align: center; }
+}
+</style>
+</head>
+<body>
+
+  <!-- Splash thumbnail shown while the standalone bundle unpacks -->
+  <template id="__bundler_thumbnail" data-bg-color="#F5EDD8">
+    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+      <rect width="1200" height="800" fill="#F5EDD8"/>
+      <circle cx="600" cy="360" r="230" fill="none" stroke="#1A0F05" stroke-width="14"/>
+      <text x="600" y="345" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-weight="800" font-size="150" fill="#1A0F05">TTT</text>
+      <text x="600" y="470" text-anchor="middle" font-family="Arial Narrow, sans-serif" letter-spacing="14" font-size="58" fill="#7A5A3A">TEEN TALKS</text>
+      <text x="600" y="635" text-anchor="middle" font-size="90" fill="#D42B4F">★ ★ ★</text>
+    </svg>
+  </template>
+
+  <!-- =================== STICKY HEADER =================== -->
+  <header class="masthead">
+    <div class="masthead__top">
+      <div class="brand">
+        <div class="ticker" aria-hidden="true">
+          <span class="star">★</span> BLM <span class="sep">·</span> POC <span class="sep">·</span> TEEN <span class="sep">·</span> SUBERBIA <span class="sep">·</span> TRENDING <span class="star">★</span>
+        </div>
+        <h1 class="wordmark">TADELE TEEN TALKS</h1>
+      </div>
+
+      <div class="head-tools">
+        <label class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+            <circle cx="11" cy="11" r="7"></circle>
+            <line x1="16.5" y1="16.5" x2="21" y2="21"></line>
+          </svg>
+          <input type="text" placeholder="search stories..." aria-label="Search stories" />
+        </label>
+        <button class="login" type="button">
+          LOGIN
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14M13 6l6 6-6 6"></path>
+          </svg>
+        </button>
+        <div class="logo-badge" title="Tadele Teen Talks">
+          <span>TADELE<br />TEEN<br />TALKS</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav" aria-label="Sections">
+      <button class="tab is-active">all</button>
+      <button class="tab">articles</button>
+      <button class="tab">videos</button>
+      <button class="tab">artwork</button>
+      <button class="tab">founders</button>
+      <button class="tab">magazines</button>
+    </nav>
+  </header>
+
+  <!-- =================== TRENDING NOW · BENTO =================== -->
+  <div class="section-label first">
+    <span class="stars star">★ ★ ★</span>
+    <span class="title">TRENDING NOW</span>
+    <span class="rule"></span>
+    <span class="meta">VOL. 03 · NOV 2025</span>
+    <span class="stars star">★ ★ ★</span>
+  </div>
+
+  <main class="bento">
+    <article class="card c-peach k-opinionvideo">
+      <span class="glyph">▶</span>
+      <span class="tag">▶ OPINION VIDEO</span>
+      <h2 class="title">Code Switching: Why I Talk Different Around Different People</h2>
+      <p class="byline">Liya G. Tadele</p>
+    </article>
+
+    <article class="card c-pink k-featured">
+      <span class="glyph">★</span>
+      <span class="tag"><span class="star">★</span> FEATURED STORY · SPECIAL ISSUE</span>
+      <div class="polaroid" aria-hidden="true">
+        <div class="media r-4-3 ph"><code>cover photo</code></div>
+        <div class="cap">suburbia, 2025</div>
+      </div>
+      <h2 class="title">The Price of Being Black in Suburbia</h2>
+      <p class="sub">Navigating black identity in a suburban area.</p>
+      <p class="byline">Liya G. Tadele · November 2025</p>
+    </article>
+
+    <article class="card c-mint k-artwork">
+      <span class="glyph">◆</span>
+      <span class="tag">◆ ARTWORK</span>
+      <h2 class="title">My Media Diet, Exposed</h2>
+      <p class="byline">Penelope Acosta</p>
+    </article>
+
+    <article class="card c-blue k-review">
+      <span class="glyph">✦</span>
+      <span class="tag">✦ REVIEW</span>
+      <h2 class="title">The Demonization of the Word “Immigrant”</h2>
+      <p class="byline">Allie Schrock</p>
+    </article>
+
+    <article class="card c-yellow k-photography">
+      <span class="glyph">◎</span>
+      <span class="tag">◎ PHOTO</span>
+      <h2 class="title">Muslim Student Interview: Clearing Misconceptions</h2>
+      <p class="byline">Meziah Woodard</p>
+    </article>
+
+    <article class="card c-peach k-newsvideo">
+      <span class="glyph">▶</span>
+      <span class="tag">▶ NEWS VIDEO</span>
+      <h2 class="title">The Power and Harm of AI</h2>
+      <p class="byline">Chole</p>
+    </article>
+
+    <article class="card c-lavender k-opinionart">
+      <span class="glyph">✦</span>
+      <span class="tag">✦ OPINION</span>
+      <h2 class="title">Talk &amp; Tell: Teens Ask Real Journalists Your Questions</h2>
+      <p class="byline">TTT Staff</p>
+    </article>
+  </main>
+
+  <!-- =================== SECTION 1 · VIDEOS & BLOGS =================== -->
+  <div class="section-label">
+    <span class="stars star">★ ★</span>
+    <span class="title">VIDEOS &amp; BLOGS</span>
+    <span class="rule"></span>
+    <span class="meta">SWIPE →</span>
+  </div>
+  <div class="rail">
+    <article class="vcard c-peach">
+      <div class="media r-16-9 ph"><code>16:9 thumbnail</code><span class="tri"></span></div>
+      <div class="body">
+        <span class="tag">OPINION</span>
+        <h3 class="title">Code Switching: Why I Talk Different Around Different People</h3>
+        <p class="byline">Liya G. Tadele</p>
+      </div>
+    </article>
+    <article class="vcard c-blue">
+      <div class="media r-16-9 ph"><code>16:9 thumbnail</code><span class="tri"></span></div>
+      <div class="body">
+        <span class="tag">NEWS</span>
+        <h3 class="title">The Power and Harm of AI</h3>
+        <p class="byline">Chole M.</p>
+      </div>
+    </article>
+    <article class="vcard c-mint">
+      <div class="media r-16-9 ph"><code>16:9 thumbnail</code><span class="tri"></span></div>
+      <div class="body">
+        <span class="tag">CULTURE</span>
+        <h3 class="title">Thrift Hauls &amp; Identity: What We Wear and Why</h3>
+        <p class="byline">Penelope Acosta</p>
+      </div>
+    </article>
+    <article class="vcard c-yellow">
+      <div class="media r-16-9 ph"><code>16:9 thumbnail</code><span class="tri"></span></div>
+      <div class="body">
+        <span class="tag">BLOG</span>
+        <h3 class="title">A Week in My Media Diet, Hour by Hour</h3>
+        <p class="byline">Meziah Woodard</p>
+      </div>
+    </article>
+    <article class="vcard c-lavender">
+      <div class="media r-16-9 ph"><code>16:9 thumbnail</code><span class="tri"></span></div>
+      <div class="body">
+        <span class="tag">INTERVIEW</span>
+        <h3 class="title">Talk &amp; Tell: Teens Ask Real Journalists</h3>
+        <p class="byline">TTT Staff</p>
+      </div>
+    </article>
+  </div>
+
+  <!-- =================== SECTION 2 · LATEST ARTICLES =================== -->
+  <div class="section-label">
+    <span class="stars star">★ ★ ★</span>
+    <span class="title">LATEST ARTICLES</span>
+    <span class="rule"></span>
+    <span class="meta">FRESH INK</span>
+  </div>
+  <section class="articles">
+    <!-- lead (wide) -->
+    <article class="acard lead">
+      <div class="media r-4-3 ph"><code>4:3 lead photo</code></div>
+      <div class="body">
+        <span class="pill">SPECIAL ISSUE</span>
+        <h3 class="title">The Price of Being Black in Suburbia</h3>
+        <p class="desc">A first-person account of navigating Black identity in a town that wasn't built with you in mind — and finding your people anyway.</p>
+        <div class="meta"><span>Liya G. Tadele</span><span class="dot">·</span><span>Nov 14, 2025</span></div>
+      </div>
+    </article>
+    <!-- normal -->
+    <article class="acard">
+      <div class="media r-4-3 ph"><code>4:3 photo</code></div>
+      <div class="body">
+        <span class="pill">REVIEW</span>
+        <h3 class="title">The Demonization of the Word “Immigrant”</h3>
+        <p class="desc">How one word got loaded — and what teens lose when language turns into a weapon.</p>
+        <div class="meta"><span>Allie Schrock</span><span class="dot">·</span><span>Nov 9, 2025</span></div>
+      </div>
+    </article>
+    <!-- normal -->
+    <article class="acard">
+      <div class="media r-4-3 ph"><code>4:3 photo</code></div>
+      <div class="body">
+        <span class="pill">PHOTO ESSAY</span>
+        <h3 class="title">Muslim Student Interview: Clearing Misconceptions</h3>
+        <p class="desc">Six students, one camera, and a candid conversation about faith in the hallways.</p>
+        <div class="meta"><span>Meziah Woodard</span><span class="dot">·</span><span>Nov 3, 2025</span></div>
+      </div>
+    </article>
+    <!-- normal row -->
+    <article class="acard">
+      <div class="media r-4-3 ph"><code>4:3 photo</code></div>
+      <div class="body">
+        <span class="pill">CULTURE</span>
+        <h3 class="title">My Media Diet, Exposed</h3>
+        <p class="desc">What an honest screen-time audit revealed about the algorithms shaping a generation.</p>
+        <div class="meta"><span>Penelope Acosta</span><span class="dot">·</span><span>Oct 28, 2025</span></div>
+      </div>
+    </article>
+    <article class="acard">
+      <div class="media r-4-3 ph"><code>4:3 photo</code></div>
+      <div class="body">
+        <span class="pill">OPINION</span>
+        <h3 class="title">Code Switching, Decoded</h3>
+        <p class="desc">Why the way we talk shifts room to room — and what it costs to keep translating ourselves.</p>
+        <div class="meta"><span>Liya G. Tadele</span><span class="dot">·</span><span>Oct 22, 2025</span></div>
+      </div>
+    </article>
+    <article class="acard">
+      <div class="media r-4-3 ph"><code>4:3 photo</code></div>
+      <div class="body">
+        <span class="pill">TECH</span>
+        <h3 class="title">The Power and Harm of AI</h3>
+        <p class="desc">A teen's-eye guide to what these tools actually do — and who they leave behind.</p>
+        <div class="meta"><span>Chole M.</span><span class="dot">·</span><span>Oct 15, 2025</span></div>
+      </div>
+    </article>
+  </section>
+
+  <!-- =================== SECTION 3 · ART & PHOTOGRAPHY =================== -->
+  <div class="section-label">
+    <span class="stars star">★ ★</span>
+    <span class="title">ART &amp; PHOTOGRAPHY</span>
+    <span class="rule"></span>
+    <span class="meta">THE GALLERY WALL</span>
+  </div>
+  <section class="gallery">
+    <article class="gitem">
+      <div class="media ph" style="aspect-ratio:3/4; background-color: var(--card-pink);"><code>portrait</code></div>
+      <div class="cap"><div class="t">Saturday Braids</div><div class="a">by Aisha N.</div></div>
+    </article>
+    <article class="gitem">
+      <div class="media ph" style="aspect-ratio:1/1; background-color: var(--card-blue);"><code>square</code></div>
+      <div class="cap"><div class="t">Blue Hour, Bronx</div><div class="a">by Marcus Lee</div></div>
+    </article>
+    <article class="gitem">
+      <div class="media ph" style="aspect-ratio:4/5; background-color: var(--card-yellow);"><code>4:5</code></div>
+      <div class="cap"><div class="t">Sunflower State of Mind</div><div class="a">by Dev Patel</div></div>
+    </article>
+    <article class="gitem">
+      <div class="media ph" style="aspect-ratio:4/3; background-color: var(--card-mint);"><code>landscape</code></div>
+      <div class="cap"><div class="t">After the Rain</div><div class="a">by Penelope Acosta</div></div>
+    </article>
+    <article class="gitem">
+      <div class="media ph" style="aspect-ratio:1/1; background-color: var(--card-lavender);"><code>square</code></div>
+      <div class="cap"><div class="t">Self, Twice</div><div class="a">by Riley Okafor</div></div>
+    </article>
+    <article class="gitem">
+      <div class="media ph" style="aspect-ratio:3/4; background-color: var(--card-peach);"><code>portrait</code></div>
+      <div class="cap"><div class="t">Grandma's Kitchen</div><div class="a">by Liya G. Tadele</div></div>
+    </article>
+    <article class="gitem">
+      <div class="media ph" style="aspect-ratio:4/3; background-color: var(--card-blue);"><code>landscape</code></div>
+      <div class="cap"><div class="t">Crosstown</div><div class="a">by Marcus Lee</div></div>
+    </article>
+    <article class="gitem">
+      <div class="media ph" style="aspect-ratio:1/1; background-color: var(--card-pink);"><code>square</code></div>
+      <div class="cap"><div class="t">Lunch Period</div><div class="a">by Meziah Woodard</div></div>
+    </article>
+  </section>
+
+  <!-- =================== SECTION 4 · MEET THE FOUNDERS =================== -->
+  <div class="founders-head">
+    <h2>MEET THE FOUNDERS</h2>
+    <p>The teens behind the talk.</p>
+  </div>
+  <section class="founders">
+    <article class="fcard">
+      <div class="avatar c-pink">LT</div>
+      <div class="name">Liya G. Tadele</div>
+      <div class="role">Editor-in-Chief</div>
+      <p class="bio">Started TTT from a group chat. Writes about identity, suburbia, and everything in between.</p>
+    </article>
+    <article class="fcard">
+      <div class="avatar c-mint">PA</div>
+      <div class="name">Penelope Acosta</div>
+      <div class="role">Creative Director</div>
+      <p class="bio">Runs the gallery wall and the vibe. Believes a good layout is a form of activism.</p>
+    </article>
+    <article class="fcard">
+      <div class="avatar c-lavender">MW</div>
+      <div class="name">Meziah Woodard</div>
+      <div class="role">Photo &amp; Video Lead</div>
+      <p class="bio">Always has a camera. Turns hallway moments into stories people actually stop to read.</p>
+    </article>
+    <article class="fcard">
+      <div class="avatar c-peach">AS</div>
+      <div class="name">Allie Schrock</div>
+      <div class="role">Managing Editor</div>
+      <p class="bio">Keeps the deadlines and the receipts. Edits with a red pen and a lot of love.</p>
+    </article>
+  </section>
+
+  <!-- =================== SECTION 5 · NEWSLETTER =================== -->
+  <section class="newsletter">
+    <div class="nl-inner">
+      <h2>STAY IN THE LOOP</h2>
+      <p>New stories, videos, and gallery drops — straight to your inbox. No spam, just the good stuff.</p>
+      <form class="nl-form" onsubmit="return false;">
+        <input type="email" placeholder="your@email.com" aria-label="Email address" required />
+        <button type="submit">SUBSCRIBE</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- =================== FOOTER =================== -->
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div class="fwordmark">TADELE<br />TEEN TALKS</div>
+      <nav class="flinks" aria-label="Footer">
+        <a href="#">ARTICLES</a>
+        <a href="#">VIDEOS</a>
+        <a href="#">ARTWORK</a>
+        <a href="#">FOUNDERS</a>
+        <a href="#">ABOUT</a>
+      </nav>
+      <div class="fsocial-block">
+        <a class="discord-btn" href="#" aria-label="Join the TTT Discord">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189z"></path></svg>
+          JOIN THE DISCORD
+        </a>
+        <div class="social-row">
+          <a class="sbtn" href="#" aria-label="Instagram">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"></path></svg>
+          </a>
+          <a class="sbtn" href="#" aria-label="TikTok">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"></path></svg>
+          </a>
+          <a class="sbtn" href="#" aria-label="YouTube">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"></path></svg>
+          </a>
+        </div>
+        <div class="handle">@TADELETEENTALKS</div>
+      </div>
+    </div>
+    <div class="footer-base">
+      <span class="tagline">By teens, for teens.</span>
+      <span class="copy">VOL. 03 · 2025 · TTT MEDIA</span>
+    </div>
+  </footer>
+
+  <script>
+    // Shrinking masthead — compact away from the top, full at the top.
+    // Hysteresis gap (120 → 10) is wider than the header's own height
+    // change, so crossing the boundary can never re-trigger itself.
+    var masthead = document.querySelector('.masthead');
+    function onScroll() {
+      var y = window.scrollY;
+      if (y > 120) masthead.classList.add('is-compact');
+      else if (y < 10) masthead.classList.remove('is-compact');
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Nav tab active-state toggle (prototype interactivity)
+    document.querySelectorAll('.nav .tab').forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        document.querySelectorAll('.nav .tab').forEach(function (t) { t.classList.remove('is-active'); });
+        tab.classList.add('is-active');
+      });
+    });
+    // Newsletter — friendly confirm (prototype)
+    document.querySelector('.nl-form').addEventListener('submit', function () {
+      var btn = this.querySelector('button');
+      btn.textContent = 'YOU’RE IN ★';
+      this.querySelector('input').value = '';
+    });
+  </script>
+</body>
+</html>

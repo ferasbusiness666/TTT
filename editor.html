@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>New post — Tadele Teen Talks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,500;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/ttt.css" />
+</head>
+<!--
+  POST EDITOR — Medium-style composer
+  ABOVE the body: title, category select, deck/subtitle, cover-image upload.
+  BODY: a contentEditable canvas with two floating tools —
+    • the "+" add menu (left of an empty line) → Image / Quote / Divider
+    • the selection bubble toolbar → Bold / Italic / H2 / H3 / Quote / List / Link
+  ALL images are uploaded manually from the device (FileReader → data URL).
+  There is deliberately NO stock/"unsplash" button.
+-->
+<body class="editor-page" data-screen-label="Post editor">
+
+  <!-- top bar -->
+  <div class="editor-top">
+    <a class="back" href="admin.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg>
+      DASHBOARD
+    </a>
+    <span class="grow"></span>
+    <span class="save-state" id="save-state">Draft · not saved</span>
+    <button class="btn btn--ghost btn--sm" id="save-draft" type="button">SAVE DRAFT</button>
+    <button class="btn btn--red btn--sm" id="publish" type="button">PUBLISH →</button>
+  </div>
+
+  <div class="editor-scroll">
+    <div class="editor-canvas" style="position:relative;">
+
+      <!-- meta: title / category / deck / cover -->
+      <div class="editor-meta">
+        <div class="editor-fieldrow">
+          <select class="editor-select" id="cat-select" aria-label="Category">
+            <option value="articles">ARTICLES</option>
+            <option value="videos">VIDEOS &amp; BLOGS</option>
+            <option value="artwork">ART &amp; PHOTOGRAPHY</option>
+            <option value="magazines">MAGAZINES</option>
+            <option value="opinion">OPINION</option>
+            <option value="review">REVIEW</option>
+          </select>
+          <button class="editor-cover-btn" id="cover-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="9" r="1.8"></circle><path d="M21 15l-5-5L5 21"></path></svg>
+            ADD COVER PHOTO
+          </button>
+        </div>
+
+        <textarea class="editor-title" id="title" rows="1" placeholder="Title" maxlength="120"></textarea>
+        <textarea class="editor-deck" id="deck" rows="1" placeholder="Add a subtitle or deck…" maxlength="200"></textarea>
+      </div>
+
+      <!-- cover preview (hidden until a photo is chosen) -->
+      <div class="editor-cover" id="cover-wrap" style="display:none;">
+        <div class="media r-16-9"><img id="cover-img" alt="Cover" /></div>
+        <span class="editor-cover-remove" id="cover-remove">✕ Remove cover</span>
+      </div>
+
+      <div class="editor-metaline">By Liya G. Tadele · will publish to the selected category</div>
+
+      <!-- the writable body -->
+      <div class="editor-body" id="body" contenteditable="true" spellcheck="true"
+           data-placeholder="Tell your story… Select text for formatting, or click the + on an empty line to add a photo, quote or divider."></div>
+
+      <!-- floating "+" add menu -->
+      <div class="add-menu" id="add-menu">
+        <button class="add-toggle" id="add-toggle" type="button" aria-label="Add block">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        </button>
+        <div class="add-actions">
+          <button type="button" data-add="image" title="Upload photo" aria-label="Upload photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="9" r="1.8"></circle><path d="M21 15l-5-5L5 21"></path></svg></button>
+          <button type="button" data-add="quote" title="Quote" aria-label="Quote"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 7h5v6H8v-.5c0-1 .5-1.5 1.5-1.7V10H8V8h-1zm9 0h5v6h-4v-.5c0-1 .5-1.5 1.5-1.7V10H16V8h0z" opacity="0"></path><path d="M10 11H7.5c0-1.6.7-2.5 2.5-2.8V6.5C6.8 6.9 5 8.6 5 12v5.5h5V11zm9 0h-2.5c0-1.6.7-2.5 2.5-2.8V6.5c-3.2.4-5 2.1-5 5.5v5.5h5V11z"></path></svg></button>
+          <button type="button" data-add="divider" title="Divider" aria-label="Divider"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12h16"></path><circle cx="12" cy="12" r="0.6" fill="currentColor"></circle></svg></button>
+        </div>
+      </div>
+
+      <!-- selection bubble toolbar -->
+      <div class="bubble" id="bubble">
+        <button type="button" data-cmd="bold" title="Bold"><strong>B</strong></button>
+        <button type="button" data-cmd="italic" title="Italic"><em>i</em></button>
+        <span class="sep"></span>
+        <button type="button" data-block="h2" title="Heading">H2</button>
+        <button type="button" data-block="h3" title="Subheading">H3</button>
+        <button type="button" data-block="blockquote" title="Quote">”</button>
+        <button type="button" data-cmd="insertUnorderedList" title="List">•</button>
+        <span class="sep"></span>
+        <button type="button" data-cmd="createLink" title="Link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg></button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- hidden file inputs (manual upload only) -->
+  <input type="file" id="cover-input" accept="image/*" hidden />
+  <input type="file" id="body-input" accept="image/*" hidden />
+
+  <script>
+    try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch (e) {}
+
+    var body      = document.getElementById("body");
+    var canvas    = document.querySelector(".editor-canvas");
+    var addMenu   = document.getElementById("add-menu");
+    var addToggle = document.getElementById("add-toggle");
+    var bubble    = document.getElementById("bubble");
+    var saveState = document.getElementById("save-state");
+
+    /* ---------- auto-grow the title + deck textareas ---------- */
+    function grow(t) { t.style.height = "auto"; t.style.height = t.scrollHeight + "px"; }
+    ["title", "deck"].forEach(function (id) {
+      var t = document.getElementById(id);
+      grow(t);
+      t.addEventListener("input", function () { grow(t); dirty(); });
+      // Enter in the title jumps into the body
+      if (id === "title") {
+        t.addEventListener("keydown", function (e) {
+          if (e.key === "Enter") { e.preventDefault(); document.getElementById("deck").focus(); }
+        });
+      }
+    });
+
+    /* ---------- cover photo (manual upload) ---------- */
+    var coverInput = document.getElementById("cover-input");
+    document.getElementById("cover-btn").addEventListener("click", function () { coverInput.click(); });
+    coverInput.addEventListener("change", function () {
+      var f = coverInput.files && coverInput.files[0];
+      if (!f) return;
+      var r = new FileReader();
+      r.onload = function (e) {
+        document.getElementById("cover-img").src = e.target.result;
+        document.getElementById("cover-wrap").style.display = "";
+        dirty();
+      };
+      r.readAsDataURL(f);
+    });
+    document.getElementById("cover-remove").addEventListener("click", function () {
+      document.getElementById("cover-wrap").style.display = "none";
+      document.getElementById("cover-img").removeAttribute("src");
+      coverInput.value = "";
+      dirty();
+    });
+
+    /* ---------- ensure the body always has a paragraph ---------- */
+    function ensureParagraph() {
+      if (!body.querySelector("p, h2, h3, blockquote, ul, ol, figure, hr")) {
+        var p = document.createElement("p");
+        p.innerHTML = "<br>";
+        body.appendChild(p);
+      }
+    }
+    body.addEventListener("focus", function () {
+      ensureParagraph();
+      if (!getSelection().rangeCount || !body.contains(getSelection().anchorNode)) {
+        placeCaret(body.querySelector("p,h2,h3,blockquote,li") || body.firstChild, true);
+      }
+    });
+
+    function placeCaret(node, atStart) {
+      if (!node) return;
+      var r = document.createRange();
+      r.selectNodeContents(node);
+      r.collapse(!!atStart);
+      var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    }
+
+    /* ---------- find the block element the caret is in ---------- */
+    function currentBlock() {
+      var s = getSelection();
+      if (!s.rangeCount) return null;
+      var n = s.getRangeAt(0).startContainer;
+      if (n.nodeType === 3) n = n.parentNode;
+      while (n && n.parentNode !== body) n = n.parentNode;
+      return (n && n.parentNode === body) ? n : null;
+    }
+
+    /* ---------- position the "+" add menu beside empty lines ---------- */
+    function updateAddMenu() {
+      var blk = currentBlock();
+      var isEmpty = blk && blk.textContent.trim() === "" && blk.tagName !== "FIGURE" && blk.tagName !== "HR";
+      if (!isEmpty || document.activeElement !== body) {
+        if (!addMenu.classList.contains("open")) addMenu.style.display = "none";
+        return;
+      }
+      var cRect = canvas.getBoundingClientRect();
+      var bRect = blk.getBoundingClientRect();
+      addMenu.style.display = "block";
+      addMenu.style.top = (bRect.top - cRect.top + (bRect.height - 40) / 2) + "px";
+      addMenu.style.left = (bRect.left - cRect.left - 52) + "px";
+    }
+
+    ["keyup", "click", "input"].forEach(function (ev) {
+      body.addEventListener(ev, function () {
+        if (!addMenu.contains(document.activeElement)) addMenu.classList.remove("open");
+        updateAddMenu();
+      });
+    });
+    body.addEventListener("input", dirty);
+
+    addToggle.addEventListener("click", function (e) {
+      e.preventDefault();
+      addMenu.classList.toggle("open");
+    });
+
+    /* ---------- add-menu actions ---------- */
+    var savedBlock = null;
+    addMenu.querySelectorAll("[data-add]").forEach(function (btn) {
+      btn.addEventListener("mousedown", function (e) { e.preventDefault(); savedBlock = currentBlock(); });
+      btn.addEventListener("click", function () {
+        var kind = btn.getAttribute("data-add");
+        addMenu.classList.remove("open");
+        if (kind === "image") { document.getElementById("body-input").click(); }
+        else if (kind === "quote") { insertBlock('<blockquote>Type a quote…</blockquote>'); }
+        else if (kind === "divider") { insertBlock('<hr><p><br></p>'); }
+      });
+    });
+
+    function insertBlock(html) {
+      var ref = savedBlock || currentBlock();
+      var frag = document.createElement("div");
+      frag.innerHTML = html;
+      var nodes = Array.prototype.slice.call(frag.childNodes);
+      if (ref) {
+        nodes.forEach(function (n) { ref.parentNode.insertBefore(n, ref.nextSibling); ref = n; });
+        if (ref && (ref.textContent !== "" || ref.tagName === "P")) placeCaret(ref, true);
+      } else {
+        nodes.forEach(function (n) { body.appendChild(n); });
+      }
+      dirty(); updateAddMenu();
+    }
+
+    /* ---------- body image upload (manual) ---------- */
+    var bodyInput = document.getElementById("body-input");
+    bodyInput.addEventListener("change", function () {
+      var f = bodyInput.files && bodyInput.files[0];
+      if (!f) { return; }
+      var r = new FileReader();
+      r.onload = function (e) {
+        var fig = document.createElement("figure");
+        fig.innerHTML = '<img src="' + e.target.result + '" alt=""><figcaption>Add a caption (optional)</figcaption>';
+        var ref = savedBlock || currentBlock();
+        if (ref) { ref.parentNode.insertBefore(fig, ref.nextSibling); }
+        else { body.appendChild(fig); }
+        // add a fresh paragraph after the image to keep writing
+        var p = document.createElement("p"); p.innerHTML = "<br>";
+        fig.parentNode.insertBefore(p, fig.nextSibling);
+        placeCaret(p, true);
+        bodyInput.value = "";
+        dirty(); updateAddMenu();
+      };
+      r.readAsDataURL(f);
+    });
+
+    /* ---------- selection bubble toolbar ---------- */
+    function updateBubble() {
+      var s = getSelection();
+      if (!s.rangeCount || s.isCollapsed || !body.contains(s.anchorNode)) { bubble.classList.remove("show"); return; }
+      var rect = s.getRangeAt(0).getBoundingClientRect();
+      if (!rect.width) { bubble.classList.remove("show"); return; }
+      var cRect = canvas.getBoundingClientRect();
+      bubble.classList.add("show");
+      var bw = bubble.offsetWidth, bh = bubble.offsetHeight;
+      var left = rect.left - cRect.left + rect.width / 2 - bw / 2;
+      left = Math.max(6, Math.min(left, canvas.offsetWidth - bw - 6));
+      bubble.style.left = left + "px";
+      bubble.style.top = (rect.top - cRect.top - bh - 8) + "px";
+      // reflect active inline states
+      bubble.querySelector('[data-cmd="bold"]').classList.toggle("on", document.queryCommandState("bold"));
+      bubble.querySelector('[data-cmd="italic"]').classList.toggle("on", document.queryCommandState("italic"));
+    }
+    document.addEventListener("selectionchange", function () {
+      if (document.activeElement === body) updateBubble();
+    });
+    body.addEventListener("mouseup", updateBubble);
+    body.addEventListener("keyup", updateBubble);
+
+    bubble.querySelectorAll("button").forEach(function (btn) {
+      btn.addEventListener("mousedown", function (e) { e.preventDefault(); }); // keep selection
+      btn.addEventListener("click", function () {
+        var cmd = btn.getAttribute("data-cmd");
+        var block = btn.getAttribute("data-block");
+        if (block) {
+          var cur = currentBlock();
+          var same = cur && cur.tagName && cur.tagName.toLowerCase() === block;
+          document.execCommand("formatBlock", false, same ? "p" : block);
+        } else if (cmd === "createLink") {
+          var url = prompt("Link URL:", "https://");
+          if (url) document.execCommand("createLink", false, url);
+        } else if (cmd) {
+          document.execCommand(cmd, false, null);
+        }
+        updateBubble(); dirty();
+      });
+    });
+
+    /* ---------- dirty / save state ---------- */
+    var t;
+    function dirty() {
+      saveState.textContent = "Draft · unsaved changes";
+      clearTimeout(t);
+      t = setTimeout(function () { saveState.textContent = "Draft · saved just now ✓"; }, 900);
+    }
+    document.getElementById("save-draft").addEventListener("click", function () {
+      saveState.textContent = "Draft · saved just now ✓";
+      toast("Draft saved ★");
+    });
+    document.getElementById("publish").addEventListener("click", function () {
+      var title = document.getElementById("title").value.trim();
+      if (!title) { toast("Add a title before publishing"); document.getElementById("title").focus(); return; }
+      toast("Published “" + title + "” ★");
+      setTimeout(function () { window.location.href = "admin.html"; }, 900);
+    });
+
+    /* ---------- tiny toast ---------- */
+    function toast(msg) {
+      var el = document.createElement("div");
+      el.textContent = msg;
+      el.style.cssText = "position:fixed;left:50%;bottom:26px;transform:translateX(-50%);" +
+        "background:var(--ttt-dark);color:var(--ttt-bg);font-family:var(--font-display);" +
+        "letter-spacing:1px;font-size:16px;padding:11px 20px 9px;border-radius:100px;" +
+        "border:1.5px solid var(--ttt-red);z-index:99;box-shadow:0 8px 24px rgba(26,15,5,.35);";
+      document.body.appendChild(el);
+      setTimeout(function () { el.style.transition = "opacity .3s"; el.style.opacity = "0"; }, 1500);
+      setTimeout(function () { el.remove(); }, 1900);
+    }
+
+    // hide the add-menu when clicking away
+    document.addEventListener("click", function (e) {
+      if (!addMenu.contains(e.target) && e.target !== body) {
+        if (!body.contains(e.target)) addMenu.classList.remove("open");
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sign in — Tadele Teen Talks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,500;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/ttt.css" />
+</head>
+<!--
+  LOGIN SCREEN
+  Bespoke centred layout (no public masthead). Left = brand panel,
+  right = form. Submitting goes to admin.html (prototype — no real auth).
+-->
+<body data-screen-label="Login">
+
+  <a class="btn btn--ghost btn--sm auth-back" href="index.html">← BACK TO SITE</a>
+
+  <main class="auth-page">
+    <div class="auth-card">
+
+      <!-- brand panel -->
+      <aside class="auth-brand">
+        <div>
+          <div class="ticker" aria-hidden="true"><span class="star">★</span> BLM · POC · TEEN · TRENDING <span class="star">★</span></div>
+          <div class="bm">TADELE<br />TEEN<br />TALKS</div>
+        </div>
+        <p class="tag2">“By teens, for teens.” Sign in to write, edit and publish to the platform.</p>
+        <div class="stat">VOL. 03 · NOV 2025 · 40+ teen contributors</div>
+      </aside>
+
+      <!-- form -->
+      <section class="auth-form">
+        <h2>WELCOME BACK</h2>
+        <p class="sub">Sign in to the editorial desk.</p>
+
+        <form id="login-form">
+          <div class="field">
+            <label for="email">EMAIL</label>
+            <input id="email" type="email" placeholder="you@tadeleteentalks.com" required />
+          </div>
+          <div class="field">
+            <label for="pw">PASSWORD</label>
+            <input id="pw" type="password" placeholder="••••••••" required />
+          </div>
+
+          <div class="auth-row">
+            <label style="display:flex; align-items:center; gap:7px; color:var(--ttt-muted); cursor:pointer;">
+              <input type="checkbox" style="width:auto;" /> Remember me
+            </label>
+            <a href="#">Forgot password?</a>
+          </div>
+
+          <button class="btn" type="submit">SIGN IN →</button>
+        </form>
+
+        <p class="auth-foot">New to the desk? <a href="#">Request a contributor account →</a></p>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    // Prototype auth — any submit lands in the admin dashboard.
+    document.getElementById("login-form").addEventListener("submit", function (e) {
+      e.preventDefault();
+      window.location.href = "admin.html";
+    });
+  </script>
+</body>
+</html>

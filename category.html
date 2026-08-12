@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tadele Teen Talks — Category</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,500;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="assets/ttt.css" />
+</head>
+<!--
+  CATEGORY / ARCHIVE PAGE
+  Pure listing of posts for ONE category — no trending / videos / mixed
+  homepage sections. Serves two jobs:
+    • nav tabs        → category.html?cat=articles|videos|artwork|magazines
+    • "VIEW ALL" CTAs → category.html?cat=<section>  (also ?cat=trending)
+    • header search   → category.html?q=<query>
+  The heading + filter come from the ?cat= / ?q= query string (see script).
+  Every card carries data-cat so the client-side filter can narrow the grid.
+-->
+<body data-screen-label="Category archive">
+
+  <header id="site-header" data-nav="articles"></header>
+
+  <!-- hero — title/lede filled from the query string -->
+  <div class="page-head">
+    <div class="crumbs"><a href="index.html">HOME</a> <span>›</span> <span id="crumb-cat">ARTICLES</span></div>
+    <span class="kicker" id="kicker">★ THE ARCHIVE</span>
+    <h1 id="cat-title">ARTICLES</h1>
+    <p class="lede" id="cat-lede">Every story, essay and review — straight from the desks of teen writers who actually live it.</p>
+    <div class="rule"></div>
+    <div class="archive-count"><span id="count"><span class="star">★</span> 12 STORIES</span></div>
+  </div>
+
+  <!-- post grid -->
+  <section class="archive" id="grid">
+    <a class="acard" data-cat="articles" href="article.html?post=suburbia">
+      <span class="media r-4-3 ph"><code>4:3 photo</code></span>
+      <span class="body">
+        <span class="pill">SPECIAL ISSUE</span>
+        <span class="title">The Price of Being Black in Suburbia</span>
+        <span class="desc">A first-person account of navigating Black identity in a town that wasn't built with you in mind.</span>
+        <span class="meta"><span>Liya G. Tadele</span><span class="dot">·</span><span>Nov 14, 2025</span></span>
+      </span>
+    </a>
+    <a class="acard" data-cat="articles" href="article.html?post=immigrant">
+      <span class="media r-4-3 ph"><code>4:3 photo</code></span>
+      <span class="body">
+        <span class="pill">REVIEW</span>
+        <span class="title">The Demonization of the Word “Immigrant”</span>
+        <span class="desc">How one word got loaded — and what teens lose when language turns into a weapon.</span>
+        <span class="meta"><span>Allie Schrock</span><span class="dot">·</span><span>Nov 9, 2025</span></span>
+      </span>
+    </a>
+    <a class="acard" data-cat="videos" href="article.html?post=code-switching">
+      <span class="media r-16-9 ph"><code>16:9 video</code></span>
+      <span class="body">
+        <span class="pill">OPINION VIDEO</span>
+        <span class="title">Code Switching: Why I Talk Different Around Different People</span>
+        <span class="desc">A short film on the exhausting art of translating yourself, room to room.</span>
+        <span class="meta"><span>Liya G. Tadele</span><span class="dot">·</span><span>Nov 8, 2025</span></span>
+      </span>
+    </a>
+    <a class="acard" data-cat="videos" href="article.html?post=ai">
+      <span class="media r-16-9 ph"><code>16:9 video</code></span>
+      <span class="body">
+        <span class="pill">NEWS VIDEO</span>
+        <span class="title">The Power and Harm of AI</span>
+        <span class="desc">A teen's-eye guide to what these tools actually do — and who they leave behind.</span>
+        <span class="meta"><span>Chole M.</span><span class="dot">·</span><span>Oct 15, 2025</span></span>
+      </span>
+    </a>
+    <a class="acard" data-cat="artwork" href="article.html?post=art">
+      <span class="media r-1-1 ph"><code>square art</code></span>
+      <span class="body">
+        <span class="pill">ARTWORK</span>
+        <span class="title">Saturday Braids</span>
+        <span class="desc">A portrait series on ritual, patience and the kitchen-chair salon.</span>
+        <span class="meta"><span>Aisha N.</span><span class="dot">·</span><span>Nov 2, 2025</span></span>
+      </span>
+    </a>
+    <a class="acard" data-cat="artwork" href="article.html?post=art">
+      <span class="media r-1-1 ph"><code>square art</code></span>
+      <span class="body">
+        <span class="pill">PHOTO</span>
+        <span class="title">Blue Hour, Bronx</span>
+        <span class="desc">The ten minutes after sunset when the whole block turns cinematic.</span>
+        <span class="meta"><span>Marcus Lee</span><span class="dot">·</span><span>Oct 30, 2025</span></span>
+      </span>
+    </a>
+    <a class="acard" data-cat="articles" href="article.html?post=muslim-student">
+      <span class="media r-4-3 ph"><code>4:3 photo</code></span>
+      <span class="body">
+        <span class="pill">PHOTO ESSAY</span>
+        <span class="title">Muslim Student Interview: Clearing Misconceptions</span>
+        <span class="desc">Six students, one camera, and a candid conversation about faith in the hallways.</span>
+        <span class="meta"><span>Meziah Woodard</span><span class="dot">·</span><span>Nov 3, 2025</span></span>
+      </span>
+    </a>
+    <a class="acard" data-cat="articles" href="article.html?post=media-diet">
+      <span class="media r-4-3 ph"><code>4:3 photo</code></span>
+      <span class="body">
+        <span class="pill">CULTURE</span>
+        <span class="title">My Media Diet, Exposed</span>
+        <span class="desc">What an honest screen-time audit revealed about the algorithms shaping a generation.</span>
+        <span class="meta"><span>Penelope Acosta</span><span class="dot">·</span><span>Oct 28, 2025</span></span>
+      </span>
+    </a>
+    <a class="acard" data-cat="videos" href="article.html?post=thrift">
+      <span class="media r-16-9 ph"><code>16:9 video</code></span>
+      <span class="body">
+        <span class="pill">BLOG</span>
+        <span class="title">Thrift Hauls &amp; Identity: What We Wear and Why</span>
+        <span class="desc">Three closets, three stories about becoming yourself one find at a time.</span>
+        <span class="meta"><span>Penelope Acosta</span><span class="dot">·</span><span>Oct 24, 2025</span></span>
+      </span>
+    </a>
+    <a class="acard" data-cat="magazines" href="article.html?post=vol3">
+      <span class="media r-3-2 ph"><code>cover</code></span>
+      <span class="body">
+        <span class="pill">ISSUE</span>
+        <span class="title">VOL. 03 — The Suburbia Issue</span>
+        <span class="desc">Our November print edition: 48 pages on identity, place and belonging.</span>
+        <span class="meta"><span>TTT Staff</span><span class="dot">·</span><span>Nov 2025</span></span>
+      </span>
+    </a>
+    <a class="acard" data-cat="magazines" href="article.html?post=vol2">
+      <span class="media r-3-2 ph"><code>cover</code></span>
+      <span class="body">
+        <span class="pill">ISSUE</span>
+        <span class="title">VOL. 02 — The Language Issue</span>
+        <span class="desc">Slang, code-switching, and the words that carry us. Back issue, fully readable.</span>
+        <span class="meta"><span>TTT Staff</span><span class="dot">·</span><span>Aug 2025</span></span>
+      </span>
+    </a>
+    <a class="acard" data-cat="artwork" href="article.html?post=art">
+      <span class="media r-1-1 ph"><code>square art</code></span>
+      <span class="body">
+        <span class="pill">ARTWORK</span>
+        <span class="title">Self, Twice</span>
+        <span class="desc">A double self-portrait about the face you show and the one you don't.</span>
+        <span class="meta"><span>Riley Okafor</span><span class="dot">·</span><span>Oct 12, 2025</span></span>
+      </span>
+    </a>
+  </section>
+
+  <div class="archive-empty" id="empty" style="display:none;">No stories here yet — check back soon. ★</div>
+
+  <div class="archive-more">
+    <button class="btn btn--ghost" type="button">LOAD MORE STORIES</button>
+  </div>
+
+  <!-- newsletter reused from the design system -->
+  <section class="newsletter" style="margin-top: var(--section-y);">
+    <div class="nl-inner">
+      <h2>STAY IN THE LOOP</h2>
+      <p>New stories, videos, and gallery drops — straight to your inbox.</p>
+      <form class="nl-form">
+        <input type="email" placeholder="your@email.com" aria-label="Email address" required />
+        <button type="submit">SUBSCRIBE</button>
+      </form>
+    </div>
+  </section>
+
+  <footer id="site-footer"></footer>
+
+  <script src="assets/ttt.js"></script>
+  <script>
+    // ---- category config: slug -> heading text -----------------------
+    var CATS = {
+      trending:  { nav: "all",       kicker: "★ TRENDING NOW",       title: "TRENDING NOW",       lede: "What the whole platform is reading, watching and arguing about this week." },
+      articles:  { nav: "articles",  kicker: "★ THE ARCHIVE",        title: "ARTICLES",           lede: "Every story, essay and review — straight from the desks of teen writers who actually live it." },
+      videos:    { nav: "videos",    kicker: "▶ WATCH & READ",       title: "VIDEOS & BLOGS",     lede: "Short films, vlogs and long-reads from the TTT newsroom." },
+      artwork:   { nav: "artwork",   kicker: "◆ THE GALLERY WALL",   title: "ART & PHOTOGRAPHY",  lede: "Photography, illustration and mixed-media from the TTT visual desk." },
+      magazines: { nav: "magazines", kicker: "◎ THE STANDS",         title: "MAGAZINES",          lede: "Read every print issue of Tadele Teen Talks, cover to cover." }
+    };
+
+    function getParam(k) {
+      return new URLSearchParams(window.location.search).get(k);
+    }
+
+    (function initCategory() {
+      var q = getParam("q");
+      var cat = (getParam("cat") || "trending").toLowerCase();
+      if (!CATS[cat]) cat = "trending";
+
+      var cfg = CATS[cat];
+      var titleEl = document.getElementById("cat-title");
+      var ledeEl  = document.getElementById("cat-lede");
+      var kickEl  = document.getElementById("kicker");
+      var crumbEl = document.getElementById("crumb-cat");
+
+      // search mode overrides category
+      if (q) {
+        kickEl.textContent = "★ SEARCH";
+        titleEl.textContent = '“' + q + '”';
+        ledeEl.textContent = "Results across articles, videos, artwork and magazines.";
+        crumbEl.textContent = "SEARCH";
+      } else {
+        kickEl.textContent = cfg.kicker;
+        titleEl.textContent = cfg.title;
+        ledeEl.textContent = cfg.lede;
+        crumbEl.textContent = cfg.title;
+        document.title = "Tadele Teen Talks — " + cfg.title;
+      }
+
+      // active nav tab (the header tabs ARE the category switcher — no
+      // separate filter row, to avoid two stacked category selectors)
+      var header = document.getElementById("site-header");
+      header.setAttribute("data-nav", q ? "" : cfg.nav);
+
+      // filter the grid (trending / search show everything)
+      var showAll = q || cat === "trending";
+      var shown = 0;
+      document.querySelectorAll("#grid .acard").forEach(function (card) {
+        var match = showAll || card.getAttribute("data-cat") === cat;
+        card.style.display = match ? "" : "none";
+        if (match) shown++;
+      });
+
+      document.getElementById("count").innerHTML =
+        '<span class="star">★</span> ' + shown + (shown === 1 ? " STORY" : " STORIES");
+      document.getElementById("empty").style.display = shown ? "none" : "";
+    })();
+  </script>
+</body>
+</html>
