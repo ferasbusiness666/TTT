@@ -720,7 +720,7 @@ button { font: inherit; }
           </svg>
           <input type="text" placeholder="search stories..." aria-label="Search stories" />
         </label>
-        <button class="login" type="button">
+        <button class="login" type="button" onclick="location.href='login.html'">
           LOGIN
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
             <path d="M5 12h14M13 6l6 6-6 6"></path>
@@ -734,11 +734,11 @@ button { font: inherit; }
 
     <nav class="nav" aria-label="Sections">
       <button class="tab is-active">all</button>
-      <button class="tab">articles</button>
-      <button class="tab">videos</button>
-      <button class="tab">artwork</button>
-      <button class="tab">founders</button>
-      <button class="tab">magazines</button>
+      <button class="tab" onclick="location.href='category.html?cat=articles'">articles</button>
+      <button class="tab" onclick="location.href='category.html?cat=videos'">videos</button>
+      <button class="tab" onclick="location.href='category.html?cat=artwork'">artwork</button>
+      <button class="tab" onclick="location.href='#founders'">founders</button>
+      <button class="tab" onclick="location.href='category.html?cat=magazines'">magazines</button>
     </nav>
   </header>
 
@@ -972,7 +972,7 @@ button { font: inherit; }
     <h2>MEET THE FOUNDERS</h2>
     <p>The teens behind the talk.</p>
   </div>
-  <section class="founders">
+  <section class="founders" id="founders">
     <article class="fcard">
       <div class="avatar c-pink">LT</div>
       <div class="name">Liya G. Tadele</div>
@@ -1016,10 +1016,10 @@ button { font: inherit; }
     <div class="footer-grid">
       <div class="fwordmark">TADELE<br />TEEN TALKS</div>
       <nav class="flinks" aria-label="Footer">
-        <a href="#">ARTICLES</a>
-        <a href="#">VIDEOS</a>
-        <a href="#">ARTWORK</a>
-        <a href="#">FOUNDERS</a>
+        <a href="category.html?cat=articles">ARTICLES</a>
+        <a href="category.html?cat=videos">VIDEOS</a>
+        <a href="category.html?cat=artwork">ARTWORK</a>
+        <a href="#founders">FOUNDERS</a>
         <a href="#">ABOUT</a>
       </nav>
       <div class="fsocial-block">
