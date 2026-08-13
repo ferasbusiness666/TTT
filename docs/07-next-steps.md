@@ -17,6 +17,7 @@
 - [ ] Wire up cover photo / image upload to Cloudinary
 - [ ] Create the real staff accounts in Supabase
 - [ ] Wire up the subscribe box to the `subscribers` table
+- [ ] Show the **real** signed-in user's name (admin sidebar + avatar initials, editor byline) instead of the hardcoded `Liya G. Tadele` placeholder — read `full_name` from `profiles` (see `05-known-issues.md`). Needs the Data API GRANT fix first.
 - [ ] Confirm the Founders **section content** shows exactly Liya Tadele and Ije Ezedani (the nav link to it was removed, but the section's actual content was never confirmed fixed — double check this)
 - [ ] Add the real favicon once the logo file is in place (see note in `08-seo-and-technical-checklist.md`, favicon section)
 

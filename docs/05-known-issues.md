@@ -11,6 +11,7 @@
   ```
   Apply via a migration (`supabase migration new grant_data_api_access`), not the SQL editor, to keep history clean.
 
+- **Signed-in user's name is hardcoded, not real.** After login, the admin sidebar still shows `Liya G. Tadele / Editor-in-Chief` (and the editor byline shows `By Liya G. Tadele`) no matter who signed in — these are leftover placeholder strings from the mockup, not the actual account. Fix later by reading the logged-in user's `full_name` from the `profiles` table (and the `LT` avatar initials with it). Depends on the Data API GRANT fix above, since it means reading `profiles`. Confirmed by Fero during login testing, 2026-08-13. (Touchpoints: `admin.html` sidebar `.admin-user`, `editor.html` `.editor-metaline`.)
 - **Login can't be exercised until a staff account exists.** The auth flow is wired and the endpoint is confirmed working (a bad password returns "Invalid login credentials", not a config error), but there are zero users. To sign in, create one in Supabase → Authentication → Users → Add user (email + password, no public sign-up). Creating the *real* staff accounts is its own step in `07-next-steps.md`.
 
 ## Genuinely undecided (ask before deciding, don't assume)
