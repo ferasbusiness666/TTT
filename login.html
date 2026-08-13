@@ -54,6 +54,9 @@
           </div>
 
           <button class="btn" type="submit">SIGN IN →</button>
+
+          <!-- shown only on a failed sign-in (hidden by default) -->
+          <p id="login-error" role="alert" style="display:none; margin-top:14px; color:var(--ttt-red); font-family:var(--font-sans); font-size:14px; line-height:1.4;"></p>
         </form>
 
         <p class="auth-foot">New to the desk? <a href="#">Request a contributor account →</a></p>
@@ -62,12 +65,61 @@
     </div>
   </main>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/ttt-auth.js"></script>
   <script>
-    // Prototype auth — any submit lands in the admin dashboard.
-    document.getElementById("login-form").addEventListener("submit", function (e) {
-      e.preventDefault();
-      window.location.href = "admin.html";
-    });
+    // Real auth — Supabase email/password. Staff accounts are created in
+    // the Supabase dashboard (no public sign-up). Success → admin desk.
+    (function () {
+      var form    = document.getElementById("login-form");
+      var errEl   = document.getElementById("login-error");
+      var btn     = form.querySelector('button[type="submit"]');
+      var btnText = btn.textContent;
+
+      // Already signed in? Skip the form, go straight to the dashboard.
+      if (window.tttAuth && window.tttAuth.getSession) {
+        window.tttAuth.getSession().then(function (res) {
+          if (res && res.data && res.data.session) window.location.replace("admin.html");
+        });
+      }
+
+      function showError(msg) {
+        errEl.textContent = msg;
+        errEl.style.display = "";
+      }
+      function reset() {
+        btn.disabled = false;
+        btn.textContent = btnText;
+      }
+
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        errEl.style.display = "none";
+
+        if (!window.tttAuth || window.tttAuth.unavailable) {
+          showError("Sign-in is temporarily unavailable. Please try again in a moment.");
+          return;
+        }
+
+        var email = document.getElementById("email").value.trim();
+        var pw    = document.getElementById("pw").value;
+
+        btn.disabled = true;
+        btn.textContent = "SIGNING IN…";
+
+        window.tttAuth.signIn(email, pw).then(function (res) {
+          if (res.error) {
+            showError(res.error.message || "Incorrect email or password.");
+            reset();
+            return;
+          }
+          window.location.href = "admin.html";
+        }).catch(function () {
+          showError("Something went wrong signing in. Please try again.");
+          reset();
+        });
+      });
+    })();
   </script>
 </body>
 </html>

@@ -3,16 +3,16 @@
 ## Before building
 - [x] Decide hosting → Cloudflare Pages, private repo (see `02-tech-stack-and-decisions.md`)
 - [x] Decide stack → Supabase + Cloudinary + YouTube, confirmed over Cloudflare D1 (see `02-tech-stack-and-decisions.md`)
-- [x] Set up the actual GitHub repo (private)
+- [x] Set up the actual GitHub repo (private) → `ferasbusiness666/TTT`
 - [x] Commit the original Claude Design HTML files as the very first commit, untouched
 - [x] Auto-deploy confirmed working on Cloudflare Pages
 - [x] Real navigation bug found and fixed (missing `<a>` links on homepage cards, not a hosting config issue) — every page confirmed working
 - [x] Confirmed Claude Code is running in the cloud, not locally — docs updated to match
 
 ## Building
-- [x] Deploy the schema in `04-database-schema.md` into the Supabase "TTT" project — done, all 5 tables live with RLS enabled. Security advisor run immediately after (see `06-changelog.md`) — found and fixed one real issue, now clean.
+- [x] Deploy the schema in `04-database-schema.md` into the Supabase "TTT" project — done, all 5 tables live with RLS enabled. Security advisor run immediately after (see `06-changelog.md`) — found and fixed one real issue, now clean. **Still blocked for the Data API, though — see `05-known-issues.md`: the table-level `GRANT`s to `anon`/`authenticated` are missing, so reads/writes fail. Fix as the first move of the next data-wiring step.**
 - [ ] Turn the hardcoded example posts into real, reusable templates — **there are 4 distinct card styles, not 1** (see `03-features-and-content-model.md` for exactly which is which). Every one of them needs to keep working with real data, not just whichever one gets noticed first. Delete the fake example posts only once real posts can be pulled from the database. The look must stay identical in all 4 styles; only the code underneath changes.
-- [ ] Wire up real login (Supabase Auth, email/password)
+- [x] Wire up real login (Supabase Auth, email/password) — `assets/ttt-auth.js`; login.html signs in, admin/editor guard-redirect when signed out, log-out ends the session. **Needs a staff account to actually sign in (see below).**
 - [ ] Wire up real post creation/editing (saves to the `posts` table)
 - [ ] Wire up cover photo / image upload to Cloudinary
 - [ ] Create the real staff accounts in Supabase

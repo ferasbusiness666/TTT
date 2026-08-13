@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,500;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/ttt.css" />
+<!-- staff-only screen: hide until the auth guard confirms a session (no flash) -->
+<script>document.documentElement.style.visibility = "hidden";</script>
 </head>
 <!--
   ADMIN DASHBOARD
@@ -38,7 +40,7 @@
         <span class="av">LT</span>
         <span class="nm">Liya G. Tadele<small>Editor-in-Chief</small></span>
       </div>
-      <a class="admin-nav" href="login.html" style="display:block; margin-top:6px;">
+      <a class="admin-nav" id="logout" href="login.html" style="display:block; margin-top:6px;">
         <span style="display:flex; align-items:center; gap:11px; padding:10px 12px; opacity:.8; font-family:var(--font-sans); font-size:14px;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:17px;height:17px;"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"></path><path d="M16 17l5-5-5-5M21 12H9"></path></svg>
           <span>Log out</span>
@@ -193,6 +195,31 @@
     }
 
     render();
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/ttt-auth.js"></script>
+  <script>
+    // Guard: only signed-in staff see the dashboard; everyone else is
+    // sent to the login screen. The page stays hidden until this resolves.
+    if (window.tttAuth && window.tttAuth.guard) {
+      window.tttAuth.guard();
+    } else {
+      document.documentElement.style.visibility = "";
+    }
+
+    // Log out → end the Supabase session, then back to login.
+    (function () {
+      var logout = document.getElementById("logout");
+      if (!logout) return;
+      logout.addEventListener("click", function (e) {
+        e.preventDefault();
+        var done = function () { window.location.replace("login.html"); };
+        if (window.tttAuth && window.tttAuth.signOut) {
+          window.tttAuth.signOut().then(done).catch(done);
+        } else { done(); }
+      });
+    })();
   </script>
 </body>
 </html>
