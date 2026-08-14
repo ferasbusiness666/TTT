@@ -1,6 +1,7 @@
 # Known Issues & Open Questions
 
 ## Open bugs
+- **Public sign-up is currently ENABLED in Supabase Auth — must be turned OFF.** (Found during the 2026-08-13 security audit.) This is a staff-only site with no public sign-up; accounts are admin-created. A signup test against the Auth API was accepted through the "signups allowed" gate (it only failed later on email format), which means anyone with the public anon key could create an account. Turn it off in the Supabase dashboard: **Authentication → Sign In / Providers** (or **Auth → Settings**) → disable **"Allow new users to sign up"**. Can't be changed via API/MCP — dashboard only. Re-test afterward (a signup attempt should return "Signups not allowed for this instance"). Also confirm **anonymous sign-ins** are off while there.
 - **Leaked-password protection is OFF.** Supabase's HaveIBeenPwned check for compromised passwords is disabled — enable it in Auth settings before launch (one toggle). Low urgency for a handful of staff accounts, but free to turn on. Added to the security checklist in `07-next-steps.md`.
 
 ## Open questions

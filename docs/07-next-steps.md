@@ -22,11 +22,11 @@
 - [ ] Add the real favicon once the logo file is in place (see note in `08-seo-and-technical-checklist.md`, favicon section)
 
 ## Before telling anyone it's ready — full security check
-- [ ] Row Level Security is ON for every table
-- [ ] Every policy matches the plan: public read-only, staff write
-- [ ] Nothing can be called without logging in
-- [ ] Public sign-up is switched OFF in Supabase's Auth settings (a real setting, separate from the site having no sign-up page)
+- [x] Row Level Security is ON for every table — audited 2026-08-13, all 5 tables
+- [x] Every policy matches the plan: public read-only, staff write — audited; grants also tightened to least privilege (migration `harden_table_grants_least_privilege`)
+- [~] Nothing can be called without logging in — by design the public CAN read *published* posts and insert into `subscribers`; everything else requires auth (admin/editor pages redirect, and RLS blocks the rest). Re-confirm once posts/subscribe are wired.
+- [ ] **Public sign-up is switched OFF** in Supabase's Auth settings — ⚠️ audit found it currently **ON**; must disable (dashboard only). See `05-known-issues.md`.
 - [ ] Enable leaked-password protection in Supabase Auth settings (HaveIBeenPwned check — currently off; see `05-known-issues.md`)
-- [ ] No `service_role` or Cloudinary secret key anywhere in the committed code
+- [x] No `service_role` or Cloudinary secret key anywhere in the committed code — verified (only the public publishable key is in client code)
 - [ ] Site checked on an actual phone
 - [ ] Newsletter-sending approach decided (or explicitly deferred)
