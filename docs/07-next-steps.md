@@ -10,14 +10,14 @@
 - [x] Confirmed Claude Code is running in the cloud, not locally — docs updated to match
 
 ## Building
-- [x] Deploy the schema in `04-database-schema.md` into the Supabase "TTT" project — done, all 5 tables live with RLS enabled. Security advisor run immediately after (see `06-changelog.md`) — found and fixed one real issue, now clean. **Still blocked for the Data API, though — see `05-known-issues.md`: the table-level `GRANT`s to `anon`/`authenticated` are missing, so reads/writes fail. Fix as the first move of the next data-wiring step.**
+- [x] Deploy the schema in `04-database-schema.md` into the Supabase "TTT" project — done, all 5 tables live with RLS enabled. Security advisor run immediately after (see `06-changelog.md`) — found and fixed one real issue, now clean. Data API GRANTs added (migration `grant_data_api_access`) so reads/writes actually work — verified.
 - [ ] Turn the hardcoded example posts into real, reusable templates — **there are 4 distinct card styles, not 1** (see `03-features-and-content-model.md` for exactly which is which). Every one of them needs to keep working with real data, not just whichever one gets noticed first. Delete the fake example posts only once real posts can be pulled from the database. The look must stay identical in all 4 styles; only the code underneath changes.
 - [x] Wire up real login (Supabase Auth, email/password) — `assets/ttt-auth.js`; login.html signs in, admin/editor guard-redirect when signed out, log-out ends the session. **Needs a staff account to actually sign in (see below).**
 - [ ] Wire up real post creation/editing (saves to the `posts` table)
 - [ ] Wire up cover photo / image upload to Cloudinary
 - [ ] Create the real staff accounts in Supabase
 - [ ] Wire up the subscribe box to the `subscribers` table
-- [ ] Show the **real** signed-in user's name (admin sidebar + avatar initials, editor byline) instead of the hardcoded `Liya G. Tadele` placeholder — read `full_name` from `profiles` (see `05-known-issues.md`). Needs the Data API GRANT fix first.
+- [x] Show the **real** signed-in user's name (admin sidebar + avatar initials, editor byline) instead of the hardcoded `Liya G. Tadele` placeholder — reads `full_name` from `profiles` via `tttAuth.currentProfile()`. (Value falls back to email until a display name is set — see `05-known-issues.md`.)
 - [ ] Confirm the Founders **section content** shows exactly Liya Tadele and Ije Ezedani (the nav link to it was removed, but the section's actual content was never confirmed fixed — double check this)
 - [ ] Add the real favicon once the logo file is in place (see note in `08-seo-and-technical-checklist.md`, favicon section)
 

@@ -203,9 +203,33 @@
     // Guard: only signed-in staff see the dashboard; everyone else is
     // sent to the login screen. The page stays hidden until this resolves.
     if (window.tttAuth && window.tttAuth.guard) {
-      window.tttAuth.guard();
+      window.tttAuth.guard().then(function (ok) { if (ok) showCurrentUser(); });
     } else {
       document.documentElement.style.visibility = "";
+    }
+
+    // Swap the mockup placeholder name/initials for the signed-in user's.
+    function showCurrentUser() {
+      if (!window.tttAuth.currentProfile) return;
+      window.tttAuth.currentProfile().then(function (p) {
+        if (!p) return;
+        var nm = document.querySelector(".admin-user .nm");
+        if (nm) {
+          var small = nm.querySelector("small");   // keep the role subtitle
+          nm.textContent = p.full_name;
+          if (small) nm.appendChild(small);
+        }
+        var av = document.querySelector(".admin-user .av");
+        if (av) av.textContent = userInitials(p.full_name);
+      });
+    }
+    function userInitials(name) {
+      if (!name) return "TTT";
+      var base = name.indexOf("@") > -1 ? name.split("@")[0] : name;
+      var parts = base.replace(/[^A-Za-z]+/g, " ").trim().split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+      return base.slice(0, 2).toUpperCase();
     }
 
     // Log out → end the Supabase session, then back to login.

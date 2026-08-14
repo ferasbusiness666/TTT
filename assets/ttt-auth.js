@@ -63,11 +63,37 @@
     });
   }
 
+  /* The signed-in user's profile row (full_name, role), joined with a couple
+   * of fields from the auth session. Falls back to the email as a display
+   * name when no full_name was set in the account's Auth metadata. Returns
+   * null if nobody is signed in. */
+  function currentProfile() {
+    return getSession().then(function (res) {
+      var session = res && res.data && res.data.session;
+      if (!session) return null;
+      var user = session.user;
+      return client.from("profiles").select("full_name, role").eq("id", user.id).maybeSingle()
+        .then(function (r) {
+          var row = r && r.data;
+          return {
+            id: user.id,
+            email: user.email,
+            full_name: (row && row.full_name) || user.email || "Staff",
+            role: (row && row.role) || "staff"
+          };
+        })
+        .catch(function () {
+          return { id: user.id, email: user.email, full_name: user.email || "Staff", role: "staff" };
+        });
+    });
+  }
+
   window.tttAuth = {
     client: client,
     signIn: signIn,
     signOut: signOut,
     getSession: getSession,
-    guard: guard
+    guard: guard,
+    currentProfile: currentProfile
   };
 })();

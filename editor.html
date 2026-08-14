@@ -344,7 +344,14 @@
     // Guard: only signed-in staff can open the editor. Page stays hidden
     // until this resolves; unauthenticated visitors go to the login screen.
     if (window.tttAuth && window.tttAuth.guard) {
-      window.tttAuth.guard();
+      window.tttAuth.guard().then(function (ok) {
+        if (!ok || !window.tttAuth.currentProfile) return;
+        window.tttAuth.currentProfile().then(function (p) {
+          if (!p) return;
+          var line = document.querySelector(".editor-metaline");
+          if (line) line.textContent = "By " + p.full_name + " · will publish to the selected category";
+        });
+      });
     } else {
       document.documentElement.style.visibility = "";
     }
