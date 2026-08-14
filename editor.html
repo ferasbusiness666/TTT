@@ -306,16 +306,10 @@
       clearTimeout(t);
       t = setTimeout(function () { saveState.textContent = "Draft · saved just now ✓"; }, 900);
     }
-    document.getElementById("save-draft").addEventListener("click", function () {
-      saveState.textContent = "Draft · saved just now ✓";
-      toast("Draft saved ★");
-    });
-    document.getElementById("publish").addEventListener("click", function () {
-      var title = document.getElementById("title").value.trim();
-      if (!title) { toast("Add a title before publishing"); document.getElementById("title").focus(); return; }
-      toast("Published “" + title + "” ★");
-      setTimeout(function () { window.location.href = "admin.html"; }, 900);
-    });
+    // Save/Publish persist to the `posts` table. savePost() is defined in
+    // the auth-aware block at the bottom (where the Supabase client lives).
+    document.getElementById("save-draft").addEventListener("click", function () { savePost("draft"); });
+    document.getElementById("publish").addEventListener("click", function () { savePost("published"); });
 
     /* ---------- tiny toast ---------- */
     function toast(msg) {
@@ -341,16 +335,105 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/ttt-auth.js"></script>
   <script>
+    // ---- persistence state -------------------------------------------
+    var currentPostId = null;       // set when editing an existing post
+    var currentPublishedAt = null;  // preserve the original publish date
+
+    // The category dropdown mixes "type" options with a couple of topic
+    // labels. Map it onto the schema's post_type (opinion/review are just
+    // articles for now — a proper category picker is a later, design-gated
+    // step). category_id stays null until that exists.
+    var SELECT_TO_TYPE = { articles: "article", videos: "video", artwork: "artwork", magazines: "magazine", opinion: "article", review: "article" };
+    var TYPE_TO_SELECT = { article: "articles", video: "videos", artwork: "artwork", magazine: "magazines" };
+
+    function slugify(s) {
+      return (s || "").toLowerCase().trim()
+        .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "post";
+    }
+
+    function savePost(status) {
+      var title = document.getElementById("title").value.trim();
+      if (!title) { toast("Add a title before saving"); document.getElementById("title").focus(); return; }
+      var client = window.tttAuth && window.tttAuth.client;
+      if (!client) { toast("Not connected — try again in a moment"); return; }
+
+      var fields = {
+        title: title,
+        excerpt: document.getElementById("deck").value.trim() || null,
+        body: document.getElementById("body").innerHTML,
+        post_type: SELECT_TO_TYPE[document.getElementById("cat-select").value] || "article",
+        status: status,
+        updated_at: new Date().toISOString()
+        // cover_image_url + video_url are wired in the Cloudinary/YouTube step.
+      };
+      if (status === "published" && !currentPublishedAt) fields.published_at = new Date().toISOString();
+
+      saveState.textContent = "Saving…";
+
+      window.tttAuth.getSession().then(function (res) {
+        var session = res && res.data && res.data.session;
+        var uid = session && session.user && session.user.id;
+        if (currentPostId) {
+          return client.from("posts").update(fields).eq("id", currentPostId).select("id, published_at").single();
+        }
+        fields.author_id = uid;
+        fields.slug = slugify(title) + "-" + Date.now().toString(36).slice(-4);
+        return client.from("posts").insert(fields).select("id, published_at").single();
+      }).then(function (r) {
+        if (!r) return;
+        if (r.error) { saveState.textContent = "Draft · not saved"; toast("Couldn’t save: " + r.error.message); return; }
+        if (r.data) { currentPostId = r.data.id; currentPublishedAt = r.data.published_at; }
+        if (status === "published") {
+          toast("Published “" + title + "” ★");
+          setTimeout(function () { window.location.href = "admin.html"; }, 900);
+        } else {
+          saveState.textContent = "Draft · saved just now ✓";
+          toast("Draft saved ★");
+        }
+      }).catch(function () {
+        saveState.textContent = "Draft · not saved";
+        toast("Couldn’t save — try again");
+      });
+    }
+
+    // Load an existing post into the editor when opened as ?id=<postId>.
+    function loadPostIntoEditor(id) {
+      var client = window.tttAuth && window.tttAuth.client;
+      if (!client) return;
+      client.from("posts").select("*").eq("id", id).single().then(function (r) {
+        if (r.error || !r.data) { toast("Couldn’t load that post"); return; }
+        var p = r.data;
+        currentPostId = p.id;
+        currentPublishedAt = p.published_at;
+        document.getElementById("title").value = p.title || "";
+        document.getElementById("deck").value = p.excerpt || "";
+        document.getElementById("body").innerHTML = p.body || "";
+        document.getElementById("cat-select").value = TYPE_TO_SELECT[p.post_type] || "articles";
+        if (p.cover_image_url) {
+          document.getElementById("cover-img").src = p.cover_image_url;
+          document.getElementById("cover-wrap").style.display = "";
+        }
+        grow(document.getElementById("title"));
+        grow(document.getElementById("deck"));
+        saveState.textContent = p.status === "published" ? "Published ✓" : "Draft · saved";
+        document.title = "Edit · " + (p.title || "post") + " — Tadele Teen Talks";
+      });
+    }
+
     // Guard: only signed-in staff can open the editor. Page stays hidden
     // until this resolves; unauthenticated visitors go to the login screen.
     if (window.tttAuth && window.tttAuth.guard) {
       window.tttAuth.guard().then(function (ok) {
-        if (!ok || !window.tttAuth.currentProfile) return;
-        window.tttAuth.currentProfile().then(function (p) {
-          if (!p) return;
-          var line = document.querySelector(".editor-metaline");
-          if (line) line.textContent = "By " + p.full_name + " · will publish to the selected category";
-        });
+        if (!ok) return;
+        if (window.tttAuth.currentProfile) {
+          window.tttAuth.currentProfile().then(function (p) {
+            if (!p) return;
+            var line = document.querySelector(".editor-metaline");
+            if (line) line.textContent = "By " + p.full_name + " · will publish to the selected category";
+          });
+        }
+        var editId = new URLSearchParams(window.location.search).get("id");
+        if (editId) loadPostIntoEditor(editId);
       });
     } else {
       document.documentElement.style.visibility = "";

@@ -92,7 +92,7 @@
             </tr>
           </thead>
           <tbody id="posts-body">
-            <!-- rows injected by script from POSTS[] -->
+            <!-- rows injected by script from the posts table (loadPosts) -->
           </tbody>
         </table>
       </div>
@@ -100,21 +100,11 @@
   </div>
 
   <script>
-    // ---- prototype post store ----------------------------------------
-    // A real build reads this from the CMS/database. Edit → editor.html,
-    // Delete removes the row + updates counts (in-memory only).
-    var POSTS = [
-      { t: "The Price of Being Black in Suburbia", sub: "Special Issue · lead essay", cat: "Articles",   catColor: "var(--card-pink)",     author: "Liya G. Tadele",  status: "published", date: "Nov 14, 2025" },
-      { t: "The Demonization of the Word “Immigrant”", sub: "Review",                cat: "Articles",   catColor: "var(--card-blue)",     author: "Allie Schrock",   status: "published", date: "Nov 9, 2025" },
-      { t: "Code Switching: Why I Talk Different", sub: "Opinion video",             cat: "Videos",     catColor: "var(--card-peach)",    author: "Liya G. Tadele",  status: "published", date: "Nov 8, 2025" },
-      { t: "Muslim Student Interview: Clearing Misconceptions", sub: "Photo essay",  cat: "Articles",   catColor: "var(--card-blue)",     author: "Meziah Woodard",  status: "published", date: "Nov 3, 2025" },
-      { t: "VOL. 03 — The Suburbia Issue", sub: "Print edition",                     cat: "Magazines",  catColor: "var(--card-yellow)",   author: "TTT Staff",       status: "published", date: "Nov 2, 2025" },
-      { t: "The Power and Harm of AI", sub: "News video",                            cat: "Videos",     catColor: "var(--card-peach)",    author: "Chole M.",        status: "review",    date: "Oct 30, 2025" },
-      { t: "Thrift Hauls & Identity", sub: "Blog",                                   cat: "Videos",     catColor: "var(--card-peach)",    author: "Penelope Acosta", status: "draft",     date: "Oct 24, 2025" },
-      { t: "My Media Diet, Exposed", sub: "Culture",                                 cat: "Articles",   catColor: "var(--card-mint)",     author: "Penelope Acosta", status: "published", date: "Oct 28, 2025" },
-      { t: "Saturday Braids", sub: "Portrait series",                                cat: "Artwork",    catColor: "var(--card-lavender)", author: "Aisha N.",        status: "draft",     date: "Oct 20, 2025" },
-      { t: "Talk & Tell: Teens Ask Real Journalists", sub: "Interview",              cat: "Articles",   catColor: "var(--card-blue)",     author: "TTT Staff",       status: "draft",     date: "Oct 12, 2025" }
-    ];
+    // ---- real post list (Supabase) -----------------------------------
+    // Rows are pulled live from the `posts` table (see loadPosts, called
+    // from the auth block once a session is confirmed). Edit → editor.html,
+    // View → the article page, toggle publishes/unpublishes, delete removes.
+    var ROWS = [];
 
     var EYE  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
     var EDIT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"></path></svg>';
@@ -125,31 +115,48 @@
     function getParam(k) { return new URLSearchParams(window.location.search).get(k); }
     var VIEW = getParam("view"); // 'drafts' | null
 
-    function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    // post_type → the display label + card colour used by the mockup, so the
+    // table looks identical whether the data is hardcoded or from the DB.
+    var TYPE_LABEL = { article: "Articles", video: "Videos", artwork: "Artwork", magazine: "Magazines" };
+    var TYPE_COLOR = { article: "var(--card-blue)", video: "var(--card-peach)", artwork: "var(--card-lavender)", magazine: "var(--card-yellow)" };
+    function fmtDate(s) {
+      if (!s) return "";
+      var d = new Date(s);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
 
     function render() {
       var body = document.getElementById("posts-body");
-      body.innerHTML = POSTS.map(function (p, i) {
-        // Drafts view shows only unpublished posts (draft + review)
+      body.innerHTML = ROWS.map(function (p) {
+        // Drafts view shows only unpublished posts
         if (VIEW === "drafts" && p.status === "published") return "";
+        var type   = p.post_type || "article";
+        var label  = TYPE_LABEL[type] || "Articles";
+        var color  = TYPE_COLOR[type] || "var(--card-blue)";
+        var author = (p.author && p.author.full_name) || "TTT Staff";
+        var date   = fmtDate(p.published_at || p.created_at);
+        var slug   = p.slug || "";
         var toggle = (p.status === "published")
-          ? '<button class="icon-btn" data-toggle="' + i + '" title="Disable (unpublish)" aria-label="Disable">' + BAN + '</button>'
-          : '<button class="icon-btn" data-toggle="' + i + '" title="Publish" aria-label="Publish">' + UP + '</button>';
+          ? '<button class="icon-btn" data-toggle="' + p.id + '" title="Disable (unpublish)" aria-label="Disable">' + BAN + '</button>'
+          : '<button class="icon-btn" data-toggle="' + p.id + '" title="Publish" aria-label="Publish">' + UP + '</button>';
         return '' +
-        '<tr data-i="' + i + '">' +
+        '<tr data-id="' + p.id + '">' +
           '<td><div class="post-cell">' +
             '<span class="thumb"><span class="media ph"></span></span>' +
-            '<span class="tt">' + esc(p.t) + '<small>' + esc(p.sub) + '</small></span>' +
+            '<span class="tt">' + esc(p.title) + '<small>' + esc(p.excerpt) + '</small></span>' +
           '</div></td>' +
-          '<td class="hide-sm"><span class="cat-chip" style="background:' + p.catColor + '">' + p.cat.toUpperCase() + '</span></td>' +
-          '<td class="hide-sm">' + esc(p.author) + '</td>' +
-          '<td><span class="status ' + p.status + '">' + p.status.toUpperCase() + '</span></td>' +
-          '<td class="hide-sm">' + p.date + '</td>' +
+          '<td class="hide-sm"><span class="cat-chip" style="background:' + color + '">' + label.toUpperCase() + '</span></td>' +
+          '<td class="hide-sm">' + esc(author) + '</td>' +
+          '<td><span class="status ' + p.status + '">' + String(p.status).toUpperCase() + '</span></td>' +
+          '<td class="hide-sm">' + date + '</td>' +
           '<td><div class="row-actions">' +
-            '<a class="icon-btn" href="article.html" title="View" aria-label="View">' + EYE + '</a>' +
-            '<a class="icon-btn" href="editor.html" title="Edit" aria-label="Edit">' + EDIT + '</a>' +
+            '<a class="icon-btn" href="article.html?post=' + encodeURIComponent(slug) + '" title="View" aria-label="View">' + EYE + '</a>' +
+            '<a class="icon-btn" href="editor.html?id=' + p.id + '" title="Edit" aria-label="Edit">' + EDIT + '</a>' +
             toggle +
-            '<button class="icon-btn danger" data-del="' + i + '" title="Delete" aria-label="Delete">' + TRASH + '</button>' +
+            '<button class="icon-btn danger" data-del="' + p.id + '" title="Delete" aria-label="Delete">' + TRASH + '</button>' +
           '</div></td>' +
         '</tr>';
       }).join("");
@@ -157,32 +164,60 @@
     }
 
     function updateCounts() {
-      document.getElementById("s-total").textContent = POSTS.length;
-      document.getElementById("s-pub").textContent   = POSTS.filter(function (p) { return p.status === "published"; }).length;
-      var drafts = POSTS.filter(function (p) { return p.status !== "published"; }).length;
-      document.getElementById("s-draft").textContent = POSTS.filter(function (p) { return p.status === "draft"; }).length;
-      document.getElementById("draft-badge").textContent = drafts;
+      var pub   = ROWS.filter(function (p) { return p.status === "published"; }).length;
+      var draft = ROWS.filter(function (p) { return p.status !== "published"; }).length;
+      document.getElementById("s-total").textContent = ROWS.length;
+      document.getElementById("s-pub").textContent   = pub;
+      document.getElementById("s-draft").textContent = draft;
+      document.getElementById("draft-badge").textContent = draft;
     }
 
-    // toggle publish / disable (event delegation)
+    // Pull posts from the database (called after the auth guard passes).
+    function loadPosts() {
+      var client = window.tttAuth && window.tttAuth.client;
+      if (!client) return;
+      client.from("posts")
+        .select("id, title, excerpt, slug, post_type, status, published_at, created_at, author:profiles(full_name)")
+        .order("created_at", { ascending: false })
+        .then(function (r) {
+          ROWS = (r && r.data) || [];
+          render();
+        });
+    }
+
+    // toggle publish / disable (event delegation → update the DB, then reload)
     document.getElementById("posts-body").addEventListener("click", function (e) {
       var t = e.target.closest("[data-toggle]");
-      if (t) {
-        var j = +t.getAttribute("data-toggle");
-        POSTS[j].status = (POSTS[j].status === "published") ? "draft" : "published";
-        render();
-      }
+      if (!t) return;
+      var id = +t.getAttribute("data-toggle");
+      var row = ROWS.filter(function (p) { return p.id === id; })[0];
+      if (!row) return;
+      var client = window.tttAuth && window.tttAuth.client;
+      if (!client) return;
+      var next = row.status === "published" ? "draft" : "published";
+      var patch = { status: next, updated_at: new Date().toISOString() };
+      if (next === "published" && !row.published_at) patch.published_at = new Date().toISOString();
+      t.disabled = true;
+      client.from("posts").update(patch).eq("id", id).then(function (res) {
+        if (res && res.error) { alert("Couldn’t update: " + res.error.message); t.disabled = false; return; }
+        loadPosts();
+      });
     });
 
-    // delete (event delegation)
+    // delete (event delegation → delete from the DB, then reload)
     document.getElementById("posts-body").addEventListener("click", function (e) {
       var btn = e.target.closest("[data-del]");
       if (!btn) return;
-      var i = +btn.getAttribute("data-del");
-      if (confirm('Delete “' + POSTS[i].t + '”? This cannot be undone.')) {
-        POSTS.splice(i, 1);
-        render();
-      }
+      var id = +btn.getAttribute("data-del");
+      var row = ROWS.filter(function (p) { return p.id === id; })[0];
+      if (!row) return;
+      if (!confirm('Delete “' + row.title + '”? This cannot be undone.')) return;
+      var client = window.tttAuth && window.tttAuth.client;
+      if (!client) return;
+      client.from("posts").delete().eq("id", id).then(function (res) {
+        if (res && res.error) { alert("Couldn’t delete: " + res.error.message); return; }
+        loadPosts();
+      });
     });
 
     // Drafts view: swap headings + active sidebar item
@@ -193,8 +228,6 @@
       var d = document.getElementById("nav-dash"); if (d) d.classList.remove("is-active");
       var dr = document.getElementById("nav-drafts"); if (dr) dr.classList.add("is-active");
     }
-
-    render();
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -203,7 +236,7 @@
     // Guard: only signed-in staff see the dashboard; everyone else is
     // sent to the login screen. The page stays hidden until this resolves.
     if (window.tttAuth && window.tttAuth.guard) {
-      window.tttAuth.guard().then(function (ok) { if (ok) showCurrentUser(); });
+      window.tttAuth.guard().then(function (ok) { if (ok) { showCurrentUser(); loadPosts(); } });
     } else {
       document.documentElement.style.visibility = "";
     }
