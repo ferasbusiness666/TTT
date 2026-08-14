@@ -40,13 +40,15 @@
       <!-- meta: title / category / deck / cover -->
       <div class="editor-meta">
         <div class="editor-fieldrow">
-          <select class="editor-select" id="cat-select" aria-label="Category">
+          <select class="editor-select" id="cat-select" aria-label="Type">
             <option value="articles">ARTICLES</option>
             <option value="videos">VIDEOS &amp; BLOGS</option>
             <option value="artwork">ART &amp; PHOTOGRAPHY</option>
             <option value="magazines">MAGAZINES</option>
-            <option value="opinion">OPINION</option>
-            <option value="review">REVIEW</option>
+          </select>
+          <select class="editor-select" id="category-select" aria-label="Category">
+            <option value="">CATEGORY…</option>
+            <!-- topical categories filled from the DB (loadCategories) -->
           </select>
           <button class="editor-cover-btn" id="cover-btn" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="9" r="1.8"></circle><path d="M21 15l-5-5L5 21"></path></svg>
@@ -351,24 +353,40 @@
         .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "post";
     }
 
+    var saving = false;  // single-flight guard so a click can't double-submit
+
     function savePost(status) {
+      if (saving) return;
       var title = document.getElementById("title").value.trim();
       if (!title) { toast("Add a title before saving"); document.getElementById("title").focus(); return; }
       var client = window.tttAuth && window.tttAuth.client;
       if (!client) { toast("Not connected — try again in a moment"); return; }
+
+      var saveBtn = document.getElementById("save-draft");
+      var pubBtn  = document.getElementById("publish");
+      var catEl   = document.getElementById("category-select");
 
       var fields = {
         title: title,
         excerpt: document.getElementById("deck").value.trim() || null,
         body: document.getElementById("body").innerHTML,
         post_type: SELECT_TO_TYPE[document.getElementById("cat-select").value] || "article",
+        category_id: (catEl && catEl.value) ? parseInt(catEl.value, 10) : null,
         status: status,
         updated_at: new Date().toISOString()
         // cover_image_url + video_url are wired in the Cloudinary/YouTube step.
       };
       if (status === "published" && !currentPublishedAt) fields.published_at = new Date().toISOString();
 
-      saveState.textContent = "Saving…";
+      // Lock the flow: stop the "unsaved changes" timer from overwriting the
+      // status text, and disable both buttons so one click does one thing.
+      saving = true;
+      clearTimeout(t);
+      saveBtn.disabled = true;
+      pubBtn.disabled = true;
+      saveState.textContent = status === "published" ? "Publishing…" : "Saving…";
+
+      function release() { saving = false; saveBtn.disabled = false; pubBtn.disabled = false; }
 
       window.tttAuth.getSession().then(function (res) {
         var session = res && res.data && res.data.session;
@@ -380,19 +398,39 @@
         fields.slug = slugify(title) + "-" + Date.now().toString(36).slice(-4);
         return client.from("posts").insert(fields).select("id, published_at").single();
       }).then(function (r) {
-        if (!r) return;
-        if (r.error) { saveState.textContent = "Draft · not saved"; toast("Couldn’t save: " + r.error.message); return; }
+        if (!r) { release(); return; }
+        if (r.error) { saveState.textContent = "Draft · not saved"; toast("Couldn’t save: " + r.error.message); release(); return; }
         if (r.data) { currentPostId = r.data.id; currentPublishedAt = r.data.published_at; }
         if (status === "published") {
+          saveState.textContent = "Published ✓";
           toast("Published “" + title + "” ★");
-          setTimeout(function () { window.location.href = "admin.html"; }, 900);
+          setTimeout(function () { window.location.href = "admin.html"; }, 800);
+          // stay disabled through the redirect
         } else {
           saveState.textContent = "Draft · saved just now ✓";
           toast("Draft saved ★");
+          release();
         }
       }).catch(function () {
         saveState.textContent = "Draft · not saved";
         toast("Couldn’t save — try again");
+        release();
+      });
+    }
+
+    // Fill the category dropdown from the DB (once, on load).
+    function loadCategories() {
+      var client = window.tttAuth && window.tttAuth.client;
+      var sel = document.getElementById("category-select");
+      if (!client || !sel) return Promise.resolve();
+      return client.from("categories").select("id, name").order("name").then(function (r) {
+        var rows = (r && r.data) || [];
+        rows.forEach(function (c) {
+          var o = document.createElement("option");
+          o.value = c.id;
+          o.textContent = String(c.name).toUpperCase();
+          sel.appendChild(o);
+        });
       });
     }
 
@@ -409,6 +447,7 @@
         document.getElementById("deck").value = p.excerpt || "";
         document.getElementById("body").innerHTML = p.body || "";
         document.getElementById("cat-select").value = TYPE_TO_SELECT[p.post_type] || "articles";
+        document.getElementById("category-select").value = p.category_id ? String(p.category_id) : "";
         if (p.cover_image_url) {
           document.getElementById("cover-img").src = p.cover_image_url;
           document.getElementById("cover-wrap").style.display = "";
@@ -432,8 +471,11 @@
             if (line) line.textContent = "By " + p.full_name + " · will publish to the selected category";
           });
         }
-        var editId = new URLSearchParams(window.location.search).get("id");
-        if (editId) loadPostIntoEditor(editId);
+        // Categories must be in the dropdown before we try to select one.
+        loadCategories().then(function () {
+          var editId = new URLSearchParams(window.location.search).get("id");
+          if (editId) loadPostIntoEditor(editId);
+        });
       });
     } else {
       document.documentElement.style.visibility = "";
