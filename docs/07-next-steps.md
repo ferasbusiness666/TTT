@@ -26,6 +26,7 @@
 - [ ] Every policy matches the plan: public read-only, staff write
 - [ ] Nothing can be called without logging in
 - [ ] Public sign-up is switched OFF in Supabase's Auth settings (a real setting, separate from the site having no sign-up page)
+- [ ] Enable leaked-password protection in Supabase Auth settings (HaveIBeenPwned check — currently off; see `05-known-issues.md`)
 - [ ] No `service_role` or Cloudinary secret key anywhere in the committed code
 - [ ] Site checked on an actual phone
 - [ ] Newsletter-sending approach decided (or explicitly deferred)

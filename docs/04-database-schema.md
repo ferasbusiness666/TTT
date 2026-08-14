@@ -43,6 +43,42 @@ create policy "profiles are publicly readable"
 
 -- Intentionally no insert policy: accounts are created directly in
 -- Supabase Auth (Dashboard -> Authentication -> Users) by an admin.
+-- Instead, a trigger auto-creates the matching profile row (below) so
+-- that profiles genuinely "mirror" auth.users — see next block.
+
+
+-- Auto-create a profile whenever a staff account is added in Supabase Auth.
+-- Without this, adding a user in the Auth dashboard leaves profiles empty.
+-- SECURITY DEFINER so it can write profiles; execute is revoked from the
+-- API roles and search_path is pinned, so it isn't exposed or hijackable.
+create or replace function public.handle_new_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.profiles (id, full_name)
+  values (
+    new.id,
+    coalesce(
+      nullif(new.raw_user_meta_data->>'full_name', ''),
+      nullif(new.raw_user_meta_data->>'name', ''),
+      new.email,
+      'Staff'
+    )
+  )
+  on conflict (id) do nothing;
+  return new;
+end;
+$$;
+
+revoke execute on function public.handle_new_user() from public, anon, authenticated;
+
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute function public.handle_new_user();
 
 
 -- categories
@@ -174,7 +210,8 @@ create policy "staff can view subscriber list"
 
 ## Notes
 
-- **Accounts aren't created through the app.** Add each staff person directly in Supabase → Authentication → Users.
+- **Accounts aren't created through the app.** Add each staff person directly in Supabase → Authentication → Users. The `on_auth_user_created` trigger then creates their `profiles` row automatically — no manual insert needed.
+- **Set a real display name when creating the account.** In the "Add user" dialog (or afterward, under the user's *User Metadata*), add `full_name`. If you skip it, the profile's `full_name` falls back to the email address, which is what shows in the UI. The name can be updated later either in Auth metadata or directly on the `profiles` row.
 - **`role` on `profiles` does nothing yet.** Every account can do everything right now. It's there so that later, if an approval step is wanted, a policy can check `role = 'editor'` — no restructuring needed.
 - **Comments, whenever ready**, would just be a new, fully independent table referencing `posts.id` — zero risk to anything above.
 - **Data API access:** Supabase sometimes needs `anon`/`authenticated` roles explicitly granted on a *new* table beyond RLS. If a table seems invisible from the app right after creating it, check Table Editor → API settings.
