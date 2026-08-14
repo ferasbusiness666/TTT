@@ -971,7 +971,8 @@ table.posts tbody tr:hover { background: rgba(26,15,5,0.03); }
 .editor-fieldrow { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
 .editor-select {
   font-family: var(--font-display); font-size: 15px; letter-spacing: 1px; color: var(--ttt-dark);
-  border: var(--line); border-radius: var(--radius-pill); padding: 8px 16px; background: var(--card-pink);
+  border: var(--line); border-radius: var(--radius-pill); padding: 8px 34px 8px 16px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%231a0f05' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center, var(--card-pink);
   cursor: pointer; appearance: none;
 }
 .editor-cover-btn {
