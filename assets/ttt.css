@@ -113,6 +113,7 @@ button { font: inherit; }
 /* ---- media slot: any <img> fills via object-fit, never distorts ---- */
 .media { display: block; position: relative; width: 100%; overflow: hidden; background: rgba(26,15,5,0.06); }
 .media > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.media > iframe { width: 100%; height: 100%; border: 0; display: block; }
 /* A real photo keeps its own proportions instead of being cropped into the
    slot's ratio — posts carry portrait, square, landscape and 4:5 images and
    forcing one shape cuts the picture. Wins over the r-* ratio classes. */
@@ -1062,6 +1063,33 @@ table.posts tbody tr:hover { background: rgba(26,15,5,0.03); }
 }
 .bubble button svg { width: 16px; height: 16px; }
 .bubble button:hover, .bubble button.on { background: var(--ttt-red); }
+
+/* link dialog — replaces the browser's prompt(), which couldn't set the
+   link text and looked nothing like the rest of the desk */
+.link-pop {
+  position: absolute; z-index: 60; display: none; width: min(340px, calc(100vw - 32px));
+  background: var(--ttt-paper); border: var(--line); border-radius: var(--radius-card);
+  padding: 14px; box-shadow: var(--shadow-print);
+}
+.link-pop.show { display: block; }
+.link-pop label {
+  display: block; font-family: var(--font-display); font-size: 12px; letter-spacing: 2px;
+  color: var(--ttt-muted); margin: 0 0 5px;
+}
+.link-pop input {
+  width: 100%; box-sizing: border-box; margin-bottom: 11px;
+  font-family: var(--font-sans); font-size: 14px; color: var(--ttt-dark);
+  background: var(--ttt-bg); border: var(--line); border-radius: var(--radius-pill);
+  padding: 9px 14px; outline: none;
+}
+.link-pop input:focus { box-shadow: var(--shadow-print); }
+.link-pop .row { display: flex; gap: 8px; align-items: center; }
+.link-pop .row .grow { flex: 1; }
+.link-pop .err {
+  display: none; color: var(--ttt-red); font-family: var(--font-sans);
+  font-size: 13px; margin: -4px 0 9px;
+}
+.link-pop .err.show { display: block; }
 .bubble .sep { width: 1.5px; height: 22px; background: rgba(245,237,216,0.25); margin: 0 3px; }
 
 

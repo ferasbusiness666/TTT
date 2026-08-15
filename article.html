@@ -177,13 +177,24 @@
         var d = new Date(s);
         return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       }
+      /* Pull the video id out of whatever YouTube URL was pasted —
+       * watch?v=, youtu.be/, /embed/ and /shorts/ all appear in the wild.
+       * Returns null for anything that isn't YouTube, so a stray link can't
+       * inject a random iframe into the page. */
+      function youtubeId(url) {
+        if (!url) return null;
+        var m = String(url).match(
+          /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+        );
+        return m ? m[1] : null;
+      }
       function readTime(html) {
         var words = String(html || "").replace(/<[^>]*>/g, " ").trim().split(/\s+/).filter(Boolean).length;
         return Math.max(1, Math.round(words / 200)) + " min read";
       }
 
       client.from("posts")
-        .select("title, excerpt, body, cover_image_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name, role)")
+        .select("title, excerpt, body, cover_image_url, video_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name, role)")
         .eq("slug", slug).maybeSingle()
         .then(function (r) {
           var p = r && r.data;
@@ -215,9 +226,31 @@
           var metaEl = document.querySelector(".byline-row .who .m");
           if (metaEl) metaEl.textContent = role + " · " + fmtDate(p.published_at || p.created_at) + " · " + readTime(p.body);
 
+          // A post with a YouTube link leads with the video — that IS the
+          // story for a video post — and the cover photo steps aside.
+          var cover = document.querySelector(".article-cover");
+          var ytId = youtubeId(p.video_url);
+          if (cover && ytId) {
+            var media = cover.querySelector(".media");
+            if (media) {
+              media.classList.remove("ph");
+              media.classList.add("r-16-9");
+              media.innerHTML = "";
+              var frame = document.createElement("iframe");
+              frame.src = "https://www.youtube-nocookie.com/embed/" + ytId;
+              frame.title = p.title || "Video";
+              frame.allow = "accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+              frame.setAttribute("allowfullscreen", "");
+              frame.setAttribute("loading", "lazy");
+              media.appendChild(frame);
+            }
+            var vcap = cover.querySelector(".cap");
+            if (vcap) vcap.style.display = "none";
+            cover = null;   // handled — skip the cover-photo branch below
+          }
+
           // Cover: swap in the real image, or drop the block when there isn't one
           // (a "cover photo" placeholder on a real story reads as a bug).
-          var cover = document.querySelector(".article-cover");
           if (cover) {
             if (p.cover_image_url) {
               var media = cover.querySelector(".media");

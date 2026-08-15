@@ -1,10 +1,24 @@
 # Known Issues & Open Questions
 
 ## Open bugs
-None right now.
+- **Deleting a post does NOT delete its photo from Cloudinary.** (Reported by Fero 2026-08-15 — confirmed: 1 image was sitting in Cloudinary with 0 posts in the database. That orphan has been removed.)
+
+  **Why it can't just be fixed in the browser:** deleting a Cloudinary asset requires an authenticated Admin API call signed with the **API secret**. This site is static — there is no server — so the secret has nowhere safe to live, and shipping it in the page would let anyone wipe the whole media library. (Cloudinary's unsigned `delete_token` only lasts ~10 minutes after upload, so it can't help with deleting later.)
+
+  **What this means in practice:** images pile up in the `ttt-posts` folder as posts are deleted or covers swapped. On the free tier that's storage quota being eaten by files nothing links to.
+
+  **Two ways to solve it, when it matters:**
+  1. **Periodic cleanup (no code).** Reconcile: list everything in the `ttt-posts` folder, compare against every `cover_image_url` and any image URL inside `body`, delete whatever isn't referenced. Claude can run this on request — it has Cloudinary access. Fine while TTT is small.
+  2. **A Cloudflare Pages Function (proper fix).** Pages supports serverless functions on the free plan, and a function can hold `CLOUDINARY_API_SECRET` as an environment variable — never in the repo. The admin's delete would call it, the function would verify the caller's Supabase session and then delete the asset. This is the real solution; it's just a bigger piece of work than a static page and needs the secret configured in Cloudflare.
+
+  Decide before launch — option 1 is enough for now; option 2 is worth it once real staff are publishing regularly.
+
+## Open questions
+- **Setting a staff member's display name.** The Supabase "Add user" quick-create dialog only asks for email + password — no metadata field — so `full_name` isn't set at creation and the profile falls back to the email (which is what then shows in the admin UI). Two ways to give an account a real name: (a) open the user in Auth → *User Metadata* and add `full_name` (if that view is reachable), or (b) just set it straight on the `profiles` row (`update public.profiles set full_name = '…' where id = '…'`) — which Claude can do on request. Decide a convention when the real staff accounts get made.
 
 ## Decided / accepted (not going to fix)
 - **The circular TTT badge is hidden on phones (≤480px).** It sits inches from the wordmark that says the same thing, and the space it took was what squeezed the wordmark into an unreadable 101px column. Dropping it on phones is what let the masthead read properly; it still shows on tablet and desktop. Say the word if you'd rather keep it and lose something else instead.
+- **Leaked-password protection stays off — it's Pro-plan only.** Supabase's HaveIBeenPwned check requires the Pro plan; this project is on the free plan, so the toggle isn't available. Accepted: accounts are admin-created for a small, fixed staff and use strong passwords, so credential-stuffing risk is low. Revisit only if the project moves to Pro. (This is the sole remaining security-advisor warning, and it's expected.)
 
 ## Resolved
 - **Cards cropped photos and left dead space (Fero, fixed 2026-08-15).** Every card style forced real photos into a fixed per-type ratio, cropping portrait/square/wide images to one shape, and `.archive .acard { height:100% }` stretched short cards to the tallest in the row leaving empty paper under them. Cards now use a natural-ratio media box and size to their own photo. Verified with four real images of different shapes — ratios preserved exactly, heights independent.
@@ -22,14 +36,6 @@ None right now.
   **Measured result** (390px viewport): brand column 101px → 177px with zero overflow; expanded header 219px → 176px; scrolled header 132px → 93px; tab row 92px → 53px (one line instead of two); search present in both states. Desktop verified unchanged — every rule sits inside a mobile media query.
 
   Still worth doing: Fero should confirm on his own phone, since a simulated viewport isn't the same as real hardware (see the launch checklist in `07-next-steps.md`).
-
-## Decided / accepted (not going to fix)
-- **Leaked-password protection stays off — it's Pro-plan only.** Supabase's HaveIBeenPwned check requires the Pro plan; this project is on the free plan, so the toggle isn't available. Accepted: accounts are admin-created for a small, fixed staff and use strong passwords, so credential-stuffing risk is low. Revisit only if the project moves to Pro. (This is the sole remaining security-advisor warning, and it's expected.)
-
-## Open questions
-- **Setting a staff member's display name.** The Supabase "Add user" quick-create dialog only asks for email + password — no metadata field — so `full_name` isn't set at creation and the profile falls back to the email (which is what then shows in the admin UI). Two ways to give an account a real name: (a) open the user in Auth → *User Metadata* and add `full_name` (if that view is reachable), or (b) just set it straight on the `profiles` row (`update public.profiles set full_name = '…' where id = '…'`) — which Claude can do on request. Decide a convention when the real staff accounts get made.
-
-## Resolved
 - **Publish required two clicks.** (Fixed 2026-08-14.) The editor's "unsaved changes" timer overwrote the status text to "Draft · saved" after a publish, and nothing blocked a second click mid-save. `savePost` is now single-flight (buttons disabled during the request, timer cancelled); one click on Publish saves *and* publishes.
 - **Topical category picker.** (Done minimally 2026-08-14.) Seeded the `categories` table and added a second small dropdown in the editor (Type stays separate). Posts now store `category_id`. A richer taxonomy UI can come later if wanted, but the basic picker works.
 - **Public sign-up was enabled on a staff-only site.** (Found + fixed 2026-08-13.) The security audit showed the Auth signup endpoint was open — anyone with the public key could create an account. Fero disabled "Allow new users to sign up" in the dashboard; verified the signup API now returns `signup_disabled` / "Signups not allowed for this instance".

@@ -59,6 +59,16 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"></rect><circle cx="8.5" cy="9" r="1.8"></circle><path d="M21 15l-5-5L5 21"></path></svg>
             ADD COVER PHOTO
           </button>
+          <button class="editor-cover-btn" id="video-btn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"></path><rect x="1" y="5" width="15" height="14" rx="2"></rect></svg>
+            ADD VIDEO LINK
+          </button>
+        </div>
+
+        <!-- YouTube link (hidden until the button above is used) -->
+        <div class="editor-fieldrow" id="video-wrap" style="display:none; margin-top:10px;">
+          <input class="editor-select" id="video-url" type="url" style="flex:1; min-width:0; font-family:var(--font-sans); font-size:14px; letter-spacing:0;" placeholder="https://youtube.com/watch?v=…" />
+          <span class="editor-cover-remove" id="video-remove">✕ Remove</span>
         </div>
 
         <textarea class="editor-title" id="title" rows="1" placeholder="Title" maxlength="120"></textarea>
@@ -100,6 +110,21 @@
         <button type="button" data-cmd="insertUnorderedList" title="List">•</button>
         <span class="sep"></span>
         <button type="button" data-cmd="createLink" title="Link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path></svg></button>
+      </div>
+
+      <!-- link dialog: text + URL, in the site's own styling -->
+      <div class="link-pop" id="link-pop">
+        <label for="link-text">TEXT</label>
+        <input id="link-text" type="text" placeholder="What the link should say" />
+        <label for="link-url">LINK URL</label>
+        <input id="link-url" type="url" placeholder="https://example.com" />
+        <div class="err" id="link-err"></div>
+        <div class="row">
+          <button class="btn btn--ghost btn--sm" id="link-cancel" type="button">CANCEL</button>
+          <span class="grow"></span>
+          <button class="btn btn--ghost btn--sm" id="link-remove" type="button" style="display:none;">REMOVE</button>
+          <button class="btn btn--red btn--sm" id="link-apply" type="button">ADD LINK</button>
+        </div>
       </div>
 
     </div>
@@ -185,6 +210,22 @@
         toast(err.message || "Couldn’t upload that image");
       });
     });
+    /* ---------- YouTube link ---------- *
+     * Videos are linked, never uploaded (Cloudinary video credits are
+     * expensive; see 02-tech-stack-and-decisions.md). Stored in video_url. */
+    var videoWrap  = document.getElementById("video-wrap");
+    var videoInput = document.getElementById("video-url");
+    document.getElementById("video-btn").addEventListener("click", function () {
+      videoWrap.style.display = "";
+      videoInput.focus();
+    });
+    document.getElementById("video-remove").addEventListener("click", function () {
+      videoInput.value = "";
+      videoWrap.style.display = "none";
+      dirty();
+    });
+    videoInput.addEventListener("input", dirty);
+
     document.getElementById("cover-remove").addEventListener("click", function () {
       document.getElementById("cover-wrap").style.display = "none";
       document.getElementById("cover-img").removeAttribute("src");
@@ -357,13 +398,158 @@
           var same = cur && cur.tagName && cur.tagName.toLowerCase() === block;
           document.execCommand("formatBlock", false, same ? "p" : block);
         } else if (cmd === "createLink") {
-          var url = prompt("Link URL:", "https://");
-          if (url) document.execCommand("createLink", false, url);
+          openLinkPop();
+          return;                       // the dialog finishes the job
         } else if (cmd) {
           document.execCommand(cmd, false, null);
         }
         updateBubble(); dirty();
       });
+    });
+
+    /* ---------- link dialog ------------------------------------------ *
+     * Replaces the browser prompt(), which couldn't set the link's text
+     * and looked nothing like the rest of the desk. Select some words →
+     * click the link button → set TEXT + URL. Clicking an existing link
+     * opens the same panel pre-filled, with a REMOVE option.            */
+    var linkPop    = document.getElementById("link-pop");
+    var linkText   = document.getElementById("link-text");
+    var linkUrl    = document.getElementById("link-url");
+    var linkErr    = document.getElementById("link-err");
+    var linkApply  = document.getElementById("link-apply");
+    var linkRemove = document.getElementById("link-remove");
+    var savedRange = null;      // selection is lost once an input takes focus
+    var editingAnchor = null;
+
+    function anchorAtCaret() {
+      var s = getSelection();
+      if (!s.rangeCount) return null;
+      var n = s.getRangeAt(0).startContainer;
+      if (n.nodeType === 3) n = n.parentNode;
+      while (n && n !== body) {
+        if (n.tagName === "A") return n;
+        n = n.parentNode;
+      }
+      return null;
+    }
+
+    /* Accept what people actually type ("example.com"), but never allow a
+     * javascript:/data: URL — post bodies are rendered on the public
+     * article page, so that would be a stored-XSS hole. */
+    function normalizeUrl(raw) {
+      var u = (raw || "").trim();
+      if (!u) return null;
+      if (/^\s*(javascript|data|vbscript):/i.test(u)) return null;
+      if (/^(https?:\/\/|mailto:|\/|#)/i.test(u)) return u;
+      return "https://" + u;
+    }
+
+    function showLinkErr(msg) { linkErr.textContent = msg; linkErr.classList.add("show"); }
+
+    function openLinkPop() {
+      var s = getSelection();
+      savedRange = s.rangeCount ? s.getRangeAt(0).cloneRange() : null;
+      editingAnchor = anchorAtCaret();
+      linkErr.classList.remove("show");
+
+      if (editingAnchor) {
+        linkText.value = editingAnchor.textContent;
+        linkUrl.value  = editingAnchor.getAttribute("href") || "";
+        linkRemove.style.display = "";
+        linkApply.textContent = "UPDATE";
+      } else {
+        linkText.value = savedRange ? savedRange.toString() : "";
+        linkUrl.value  = "";
+        linkRemove.style.display = "none";
+        linkApply.textContent = "ADD LINK";
+      }
+
+      bubble.classList.remove("show");
+      linkPop.classList.add("show");
+
+      // sit under the selection, clamped inside the canvas
+      var cRect = canvas.getBoundingClientRect();
+      var rect = (editingAnchor || (savedRange && savedRange.getBoundingClientRect().width)
+                   ? (editingAnchor ? editingAnchor : savedRange)
+                   : null);
+      var r = rect ? rect.getBoundingClientRect() : null;
+      if (r) {
+        var left = r.left - cRect.left;
+        left = Math.max(6, Math.min(left, canvas.offsetWidth - linkPop.offsetWidth - 6));
+        linkPop.style.left = left + "px";
+        linkPop.style.top  = (r.bottom - cRect.top + 10) + "px";
+      }
+      setTimeout(function () { (linkText.value ? linkUrl : linkText).focus(); }, 30);
+    }
+
+    function closeLinkPop() {
+      linkPop.classList.remove("show");
+      savedRange = null;
+      editingAnchor = null;
+    }
+
+    function applyLink() {
+      var url = normalizeUrl(linkUrl.value);
+      if (!url) { showLinkErr("Enter a web address, like example.com"); linkUrl.focus(); return; }
+      var text = linkText.value.trim();
+
+      if (editingAnchor) {
+        editingAnchor.setAttribute("href", url);
+        editingAnchor.setAttribute("target", "_blank");
+        editingAnchor.setAttribute("rel", "noopener noreferrer");
+        if (text) editingAnchor.textContent = text;
+        closeLinkPop(); dirty(); return;
+      }
+
+      body.focus();
+      if (savedRange) {
+        var sel = getSelection();
+        sel.removeAllRanges(); sel.addRange(savedRange);
+        if (!text) text = savedRange.toString() || url;
+        var a = document.createElement("a");
+        a.href = url; a.target = "_blank"; a.rel = "noopener noreferrer";
+        a.textContent = text;
+        savedRange.deleteContents();
+        savedRange.insertNode(a);
+        var after = document.createRange();
+        after.setStartAfter(a); after.collapse(true);
+        sel.removeAllRanges(); sel.addRange(after);
+      }
+      closeLinkPop(); dirty();
+    }
+
+    linkApply.addEventListener("click", applyLink);
+    linkCancelWire();
+    function linkCancelWire() {
+      document.getElementById("link-cancel").addEventListener("click", function () {
+        closeLinkPop(); body.focus();
+      });
+    }
+    linkRemove.addEventListener("click", function () {
+      if (editingAnchor) {
+        var parent = editingAnchor.parentNode;
+        while (editingAnchor.firstChild) parent.insertBefore(editingAnchor.firstChild, editingAnchor);
+        parent.removeChild(editingAnchor);
+        dirty();
+      }
+      closeLinkPop(); body.focus();
+    });
+    [linkText, linkUrl].forEach(function (input) {
+      input.addEventListener("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); applyLink(); }
+        else if (e.key === "Escape") { e.preventDefault(); closeLinkPop(); body.focus(); }
+      });
+    });
+    // clicking an existing link opens the panel to edit it
+    body.addEventListener("click", function (e) {
+      var a = e.target.closest ? e.target.closest("a") : null;
+      if (a && body.contains(a)) { e.preventDefault(); openLinkPop(); }
+    });
+    // click anywhere else closes it
+    document.addEventListener("mousedown", function (e) {
+      if (linkPop.classList.contains("show") && !linkPop.contains(e.target) && !bubble.contains(e.target)) {
+        closeLinkPop();
+      }
     });
 
     /* ---------- dirty / save state ---------- */
@@ -442,9 +628,9 @@
         post_type: SELECT_TO_TYPE[document.getElementById("cat-select").value] || "article",
         category_id: (catEl && catEl.value) ? parseInt(catEl.value, 10) : null,
         cover_image_url: coverUrl,
+        video_url: (videoInput.value.trim() || null),
         status: status,
         updated_at: new Date().toISOString()
-        // video_url (YouTube) is still to come — it has no field in the editor yet.
       };
       if (status === "published" && !currentPublishedAt) fields.published_at = new Date().toISOString();
 
@@ -518,6 +704,7 @@
         document.getElementById("body").innerHTML = p.body || "";
         document.getElementById("cat-select").value = TYPE_TO_SELECT[p.post_type] || "articles";
         document.getElementById("category-select").value = p.category_id ? String(p.category_id) : "";
+        if (p.video_url) { videoInput.value = p.video_url; videoWrap.style.display = ""; }
         coverUrl = p.cover_image_url || null;
         if (coverUrl) {
           document.getElementById("cover-img").src = coverUrl;
