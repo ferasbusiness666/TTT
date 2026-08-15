@@ -34,6 +34,21 @@
       .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
   function link(p) { return "article.html?post=" + encodeURIComponent(p.slug || ""); }
+
+  /* Cloudinary delivery. The database stores the plain uploaded URL — one
+   * source of truth — and the right transformation is applied here, at
+   * render time, so the same photo can be served small in a card and large
+   * on the article page without re-uploading.
+   *   f_auto  → WebP/AVIF where the browser supports it
+   *   q_auto  → sensible compression instead of a 6MB original
+   *   w_<n>   → never ship more pixels than the slot can show
+   * Non-Cloudinary URLs are returned untouched. */
+  function cdn(url, width) {
+    if (!url || url.indexOf("/image/upload/") === -1) return url;
+    if (/\/image\/upload\/[a-z]_[^/]*\//.test(url)) return url;   // already transformed
+    var t = "f_auto,q_auto" + (width ? ",w_" + width + ",c_limit" : "");
+    return url.replace("/image/upload/", "/image/upload/" + t + "/");
+  }
   function author(p) { return (p.author && p.author.full_name) || "TTT Staff"; }
   function label(p) {
     return String((p.category && p.category.name) || TYPE_LABEL[p.post_type] || "STORY").toUpperCase();
@@ -57,7 +72,7 @@
    * to match. Placeholders keep a ratio — they have no intrinsic size. */
   function media(p, ratioCls, phLabel, extra) {
     if (p.cover_image_url) {
-      return '<div class="media is-natural"><img src="' + esc(p.cover_image_url) + '" alt="' + esc(p.title) + '">' + (extra || "") + "</div>";
+      return '<div class="media is-natural"><img src="' + esc(cdn(p.cover_image_url, 900)) + '" alt="' + esc(p.title) + '" loading="lazy">' + (extra || "") + "</div>";
     }
     return '<div class="media ' + (ratioCls || "") + ' ph"><code>' + esc(phLabel) + "</code>" + (extra || "") + "</div>";
   }
@@ -113,7 +128,7 @@
    * artwork" means. Without one we fall back to the slot's shape.      */
   function gitem(p, slot) {
     var box = p.cover_image_url
-      ? '<div class="media"><img src="' + esc(p.cover_image_url) + '" alt="' + esc(p.title) + '"></div>'
+      ? '<div class="media"><img src="' + esc(cdn(p.cover_image_url, 900)) + '" alt="' + esc(p.title) + '" loading="lazy"></div>'
       : '<div class="media ph" style="aspect-ratio:' + slot.ar + '; background-color: ' + slot.color + ';"><code>' + esc(slot.label) + "</code></div>";
     return '<a class="gitem" href="' + link(p) + '">' + box +
       '<div class="cap"><div class="t">' + esc(p.title) + '</div><div class="a">by ' + esc(author(p)) + "</div></div></a>";
@@ -131,7 +146,7 @@
     var type  = p.post_type || "article";
     var ratio = ARCHIVE_RATIO[type] || "r-4-3";
     var box = p.cover_image_url
-      ? '<span class="media is-natural"><img src="' + esc(p.cover_image_url) + '" alt="' + esc(p.title) + '"></span>'
+      ? '<span class="media is-natural"><img src="' + esc(cdn(p.cover_image_url, 900)) + '" alt="' + esc(p.title) + '" loading="lazy"></span>'
       : '<span class="media ' + ratio + ' ph"><code>' + esc(ARCHIVE_PH[type] || "photo") + "</code></span>";
     return '<a class="acard" data-cat="' + (TYPE_TO_CAT[type] || "articles") + '" href="' + link(p) + '">' + box +
       '<span class="body">' +
@@ -178,7 +193,7 @@
   }
 
   window.tttPosts = {
-    esc: esc, link: link, author: author, label: label, date: date, media: media,
+    esc: esc, link: link, cdn: cdn, author: author, label: label, date: date, media: media,
     bentoCard: bentoCard, vcard: vcard, acard: acard, gitem: gitem, archiveCard: archiveCard,
     fetchPosts: fetchPosts, fillSection: fillSection, hasPublished: hasPublished
   };

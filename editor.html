@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400;1,500;1,600&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="assets/ttt.css" />
+<script src="assets/ttt-upload.js"></script>
 <link rel="icon" href="/favicon.ico" sizes="any" />
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png" />
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
@@ -20,7 +21,8 @@
   BODY: a contentEditable canvas with two floating tools —
     • the "+" add menu (left of an empty line) → Image / Quote / Divider
     • the selection bubble toolbar → Bold / Italic / H2 / H3 / Quote / List / Link
-  ALL images are uploaded manually from the device (FileReader → data URL).
+  ALL images are chosen manually from the device and uploaded to Cloudinary
+  (assets/ttt-upload.js); the post stores the hosted URL, not the file.
   There is deliberately NO stock/"unsplash" button.
 -->
 <body class="editor-page" data-screen-label="Post editor">
@@ -110,6 +112,12 @@
   <script>
     try { document.execCommand("defaultParagraphSeparator", false, "p"); } catch (e) {}
 
+    // Hosted cover URL (Cloudinary) — this, not the on-screen preview, is
+    // what gets written to the post. `uploading` counts in-flight uploads so
+    // a save can't race ahead of them and store a half-finished post.
+    var coverUrl  = null;
+    var uploading = 0;
+
     var body      = document.getElementById("body");
     var canvas    = document.querySelector(".editor-canvas");
     var addMenu   = document.getElementById("add-menu");
@@ -133,22 +141,55 @@
 
     /* ---------- cover photo (manual upload) ---------- */
     var coverInput = document.getElementById("cover-input");
+    var coverBtn   = document.getElementById("cover-btn");
+    var coverBtnHTML = coverBtn.innerHTML;
+
     document.getElementById("cover-btn").addEventListener("click", function () { coverInput.click(); });
     coverInput.addEventListener("change", function () {
       var f = coverInput.files && coverInput.files[0];
       if (!f) return;
-      var r = new FileReader();
-      r.onload = function (e) {
+
+      // Show the local file immediately so the editor feels responsive,
+      // then swap in the hosted URL once Cloudinary has it. coverUrl (not
+      // this preview) is what gets saved — a preview alone used to look
+      // like it worked and then vanish on save.
+      var reader = new FileReader();
+      reader.onload = function (e) {
         document.getElementById("cover-img").src = e.target.result;
         document.getElementById("cover-wrap").style.display = "";
-        dirty();
       };
-      r.readAsDataURL(f);
+      reader.readAsDataURL(f);
+
+      uploading++;
+      coverBtn.disabled = true;
+      window.tttUpload.upload(f, function (pct) {
+        coverBtn.textContent = "UPLOADING " + pct + "%";
+      }).then(function (res) {
+        coverUrl = res.url;
+        document.getElementById("cover-img").src = res.url;
+        coverBtn.innerHTML = coverBtnHTML;
+        coverBtn.disabled = false;
+        uploading--;
+        dirty();
+        toast("Cover photo uploaded ★");
+      }).catch(function (err) {
+        // roll the preview back so the editor never shows a photo that
+        // isn't actually saved anywhere
+        coverUrl = null;
+        document.getElementById("cover-wrap").style.display = "none";
+        document.getElementById("cover-img").removeAttribute("src");
+        coverInput.value = "";
+        coverBtn.innerHTML = coverBtnHTML;
+        coverBtn.disabled = false;
+        uploading--;
+        toast(err.message || "Couldn’t upload that image");
+      });
     });
     document.getElementById("cover-remove").addEventListener("click", function () {
       document.getElementById("cover-wrap").style.display = "none";
       document.getElementById("cover-img").removeAttribute("src");
       coverInput.value = "";
+      coverUrl = null;
       dirty();
     });
 
@@ -245,21 +286,42 @@
     bodyInput.addEventListener("change", function () {
       var f = bodyInput.files && bodyInput.files[0];
       if (!f) { return; }
-      var r = new FileReader();
-      r.onload = function (e) {
-        var fig = document.createElement("figure");
-        fig.innerHTML = '<img src="' + e.target.result + '" alt=""><figcaption>Add a caption (optional)</figcaption>';
-        var ref = savedBlock || currentBlock();
-        if (ref) { ref.parentNode.insertBefore(fig, ref.nextSibling); }
-        else { body.appendChild(fig); }
-        // add a fresh paragraph after the image to keep writing
-        var p = document.createElement("p"); p.innerHTML = "<br>";
-        fig.parentNode.insertBefore(p, fig.nextSibling);
-        placeCaret(p, true);
-        bodyInput.value = "";
-        dirty(); updateAddMenu();
-      };
-      r.readAsDataURL(f);
+
+      var problem = window.tttUpload.validate(f);
+      if (problem) { toast(problem); bodyInput.value = ""; return; }
+
+      // Insert the figure straight away with a local preview, then replace
+      // the src with the hosted URL. Body images used to be saved as base64
+      // data URLs inside the post HTML, which bloated every row in the
+      // database and slowed the article page down; they're hosted now.
+      var fig = document.createElement("figure");
+      fig.innerHTML = '<img alt=""><figcaption>Add a caption (optional)</figcaption>';
+      var img = fig.querySelector("img");
+      var reader = new FileReader();
+      reader.onload = function (e) { img.src = e.target.result; };
+      reader.readAsDataURL(f);
+
+      var ref = savedBlock || currentBlock();
+      if (ref) { ref.parentNode.insertBefore(fig, ref.nextSibling); }
+      else { body.appendChild(fig); }
+      var p = document.createElement("p"); p.innerHTML = "<br>";
+      fig.parentNode.insertBefore(p, fig.nextSibling);
+      placeCaret(p, true);
+      bodyInput.value = "";
+      updateAddMenu();
+
+      uploading++;
+      img.style.opacity = "0.5";   // reads as "still working"
+      window.tttUpload.upload(f).then(function (res) {
+        img.src = res.url;
+        img.style.opacity = "";
+        uploading--;
+        dirty();
+      }).catch(function (err) {
+        fig.remove();              // never leave an image that isn't hosted
+        uploading--;
+        toast(err.message || "Couldn’t upload that image");
+      });
     });
 
     /* ---------- selection bubble toolbar ---------- */
@@ -360,6 +422,10 @@
 
     function savePost(status) {
       if (saving) return;
+      if (uploading > 0) {
+        toast("Hang on — a photo is still uploading");
+        return;
+      }
       var title = document.getElementById("title").value.trim();
       if (!title) { toast("Add a title before saving"); document.getElementById("title").focus(); return; }
       var client = window.tttAuth && window.tttAuth.client;
@@ -375,9 +441,10 @@
         body: document.getElementById("body").innerHTML,
         post_type: SELECT_TO_TYPE[document.getElementById("cat-select").value] || "article",
         category_id: (catEl && catEl.value) ? parseInt(catEl.value, 10) : null,
+        cover_image_url: coverUrl,
         status: status,
         updated_at: new Date().toISOString()
-        // cover_image_url + video_url are wired in the Cloudinary/YouTube step.
+        // video_url (YouTube) is still to come — it has no field in the editor yet.
       };
       if (status === "published" && !currentPublishedAt) fields.published_at = new Date().toISOString();
 
@@ -451,8 +518,9 @@
         document.getElementById("body").innerHTML = p.body || "";
         document.getElementById("cat-select").value = TYPE_TO_SELECT[p.post_type] || "articles";
         document.getElementById("category-select").value = p.category_id ? String(p.category_id) : "";
-        if (p.cover_image_url) {
-          document.getElementById("cover-img").src = p.cover_image_url;
+        coverUrl = p.cover_image_url || null;
+        if (coverUrl) {
+          document.getElementById("cover-img").src = coverUrl;
           document.getElementById("cover-wrap").style.display = "";
         }
         grow(document.getElementById("title"));

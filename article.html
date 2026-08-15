@@ -149,6 +149,7 @@
   <script src="assets/ttt.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/ttt-auth.js"></script>
+  <script src="assets/ttt-posts.js"></script>
   <script>
     /* Fill this template from the real post named by ?post=<slug>.
      *
@@ -224,7 +225,9 @@
                 media.classList.remove("ph");
                 media.innerHTML = "";
                 var img = document.createElement("img");
-                img.src = p.cover_image_url;
+                // full-width hero, so allow more pixels than a card gets
+                img.src = (window.tttPosts && window.tttPosts.cdn)
+                  ? window.tttPosts.cdn(p.cover_image_url, 1600) : p.cover_image_url;
                 img.alt = p.title || "";
                 media.appendChild(img);
               }

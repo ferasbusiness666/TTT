@@ -15,6 +15,14 @@
 - Supabase's **anon key** is *meant* to be public — every Supabase app works this way, private repo or not. Real security comes from the database rules (Row Level Security), not from hiding this key.
 - Supabase's **service_role key** and Cloudinary's **API secret** must never be committed to the repo, private or public. Use environment variables / repo secrets instead. Being private isn't a reason to get careless — treat every commit as if it could someday become public.
 
+## Cloudinary setup (as configured)
+
+- **Cloud name:** `dxow1ant2` · **Unsigned upload preset:** `ttt-posts` · **Folder:** `ttt-posts`
+- **Why unsigned:** signed uploads need a server holding an API secret to sign each request. This site is static — there is no backend, so there is nowhere safe to keep one. An unsigned preset locked to image formats is the standard approach for a small admin-only upload flow. The cloud name and preset name are public by design (they ship in the page); the **API secret must never appear in the repo**.
+- **Restrictions:** the preset limits uploads to `jpg,png,webp,gif`. Cloudinary validates real file contents, not the extension — a `.txt` renamed to `.png` is rejected (verified). The preset has **no max file size**, so a 10MB cap is enforced in the browser before upload (`assets/ttt-upload.js`).
+- **Public IDs are auto-generated and unguessable**, so uploaded images can't be enumerated by URL.
+- **Delivery:** the database stores the plain uploaded URL as the single source of truth; transformations are applied at render time by `tttPosts.cdn(url, width)` — `f_auto` (WebP/AVIF where supported), `q_auto` (compression), `w_*,c_limit` (never ship more pixels than the slot shows). Cards request 900px, the article hero 1600px. Measured on a 4.3MB test photo: **370KB delivered, ~11.6× smaller.** This matters on a free tier.
+
 ## Key decisions made along the way
 
 - **Auth model:** a small, fixed number of staff accounts, created directly in Supabase by an admin. No public sign-up page.
