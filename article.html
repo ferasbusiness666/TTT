@@ -256,6 +256,10 @@
               var media = cover.querySelector(".media");
               if (media) {
                 media.classList.remove("ph");
+                // keep the photo's own shape — a fixed 16:9 box cropped tall
+                // covers, which is what body images never did
+                media.classList.remove("r-16-9");
+                media.classList.add("is-natural");
                 media.innerHTML = "";
                 var img = document.createElement("img");
                 // full-width hero, so allow more pixels than a card gets

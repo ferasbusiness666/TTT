@@ -229,8 +229,24 @@
         }
         return client.from("posts").delete().eq("id", id).then(function (res) {
           if (res && res.error) { alert("Couldn’t delete: " + res.error.message); return; }
-          // best-effort: the post is already gone either way
-          if (images.length && window.tttUpload) window.tttUpload.deleteImages(images);
+          // best-effort: the post is already gone either way, but say so
+          // out loud if the photo couldn't be removed — silence here is why
+          // orphaned images went unnoticed in the first place
+          if (images.length && window.tttUpload) {
+            window.tttUpload.deleteImages(images).then(function (out) {
+              var results = (out && out.deleted) || [];
+              var failed = results.filter(function (x) { return x.result !== "ok"; });
+              console.log("[ttt] image cleanup:", out);
+              if (!out) {
+                alert("The post was deleted, but its photo couldn’t be removed from Cloudinary (no response from the cleanup service).");
+              } else if (out.error) {
+                alert("The post was deleted, but its photo couldn’t be removed:\n\n" + out.error);
+              } else if (failed.length) {
+                alert("The post was deleted, but its photo couldn’t be removed:\n\n" +
+                      failed.map(function (x) { return x.publicId + ": " + x.result; }).join("\n"));
+              }
+            });
+          }
           loadPosts();
         });
       });

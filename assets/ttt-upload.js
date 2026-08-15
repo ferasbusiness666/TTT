@@ -125,7 +125,14 @@
           "Authorization": "Bearer " + session.access_token
         },
         body: JSON.stringify({ urls: list })
-      }).then(function (r) { return r.json(); });
+      }).then(function (r) {
+        return r.json().then(function (out) {
+          // a non-2xx still carries a readable reason — pass it through
+          // rather than letting it look like success
+          if (!r.ok && out && !out.error) out.error = "HTTP " + r.status;
+          return out;
+        });
+      });
     }).catch(function (err) {
       console.warn("[ttt-upload] image cleanup failed:", err);
       return null;
