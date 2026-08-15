@@ -141,6 +141,7 @@
     // what gets written to the post. `uploading` counts in-flight uploads so
     // a save can't race ahead of them and store a half-finished post.
     var coverUrl  = null;
+    var originalCoverUrl = null;   // the cover currently stored on the post
     var uploading = 0;
 
     var body      = document.getElementById("body");
@@ -190,7 +191,13 @@
       window.tttUpload.upload(f, function (pct) {
         coverBtn.textContent = "UPLOADING " + pct + "%";
       }).then(function (res) {
+        var replaced = coverUrl;
         coverUrl = res.url;
+        // if they'd already picked one this session, that upload is now
+        // unreferenced — remove it rather than leaving it behind
+        if (replaced && replaced !== originalCoverUrl && window.tttUpload.deleteImages) {
+          window.tttUpload.deleteImages([replaced]);
+        }
         document.getElementById("cover-img").src = res.url;
         coverBtn.innerHTML = coverBtnHTML;
         coverBtn.disabled = false;
@@ -657,6 +664,12 @@
         if (!r) { release(); return; }
         if (r.error) { saveState.textContent = "Draft · not saved"; toast("Couldn’t save: " + r.error.message); release(); return; }
         if (r.data) { currentPostId = r.data.id; currentPublishedAt = r.data.published_at; }
+        // the post now points at the new cover, so the previous one is
+        // safe (and correct) to delete
+        if (originalCoverUrl && originalCoverUrl !== coverUrl && window.tttUpload.deleteImages) {
+          window.tttUpload.deleteImages([originalCoverUrl]);
+        }
+        originalCoverUrl = coverUrl;
         if (status === "published") {
           saveState.textContent = "Published ✓";
           toast("Published “" + title + "” ★");
@@ -706,6 +719,7 @@
         document.getElementById("category-select").value = p.category_id ? String(p.category_id) : "";
         if (p.video_url) { videoInput.value = p.video_url; videoWrap.style.display = ""; }
         coverUrl = p.cover_image_url || null;
+        originalCoverUrl = coverUrl;
         if (coverUrl) {
           document.getElementById("cover-img").src = coverUrl;
           document.getElementById("cover-wrap").style.display = "";

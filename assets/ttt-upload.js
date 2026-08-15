@@ -87,9 +87,56 @@
     });
   }
 
+  /* Every Cloudinary image referenced inside a post's body HTML. Used when
+   * a post is deleted so its in-article photos go with it, not just the
+   * cover. */
+  function imageUrlsInHtml(html) {
+    var out = [];
+    if (!html) return out;
+    var re = /<img[^>]+src=["']([^"']+)["']/gi, m;
+    while ((m = re.exec(html)) !== null) {
+      if (m[1].indexOf("res.cloudinary.com") > -1) out.push(m[1]);
+    }
+    return out;
+  }
+
+  /* Ask the server to delete images from Cloudinary.
+   *
+   * The browser can't do this itself — deletion is signed with the API
+   * secret, which must never ship to the page — so it goes through the
+   * /api/delete-image Pages Function, which holds the secret in an
+   * environment variable and checks the caller is signed in.
+   *
+   * Deliberately best-effort: if cleanup fails the post is still gone, and
+   * a leftover image is a tidiness problem, not a broken site. It resolves
+   * rather than rejecting so callers never have to guard it. */
+  function deleteImages(urls) {
+    var list = (urls || []).filter(Boolean);
+    if (!list.length) return Promise.resolve({ deleted: [] });
+    if (!window.tttAuth || !window.tttAuth.getSession) return Promise.resolve(null);
+
+    return window.tttAuth.getSession().then(function (res) {
+      var session = res && res.data && res.data.session;
+      if (!session) return null;
+      return fetch("/api/delete-image", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "Authorization": "Bearer " + session.access_token
+        },
+        body: JSON.stringify({ urls: list })
+      }).then(function (r) { return r.json(); });
+    }).catch(function (err) {
+      console.warn("[ttt-upload] image cleanup failed:", err);
+      return null;
+    });
+  }
+
   window.tttUpload = {
     upload: upload,
     validate: validate,
+    deleteImages: deleteImages,
+    imageUrlsInHtml: imageUrlsInHtml,
     MAX_BYTES: MAX_BYTES,
     CLOUD_NAME: CLOUD_NAME
   };

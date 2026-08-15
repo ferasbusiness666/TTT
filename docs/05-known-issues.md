@@ -1,20 +1,19 @@
 # Known Issues & Open Questions
 
 ## Open bugs
-- **Deleting a post does NOT delete its photo from Cloudinary.** (Reported by Fero 2026-08-15 — confirmed: 1 image was sitting in Cloudinary with 0 posts in the database. That orphan has been removed.)
+- **Automatic Cloudinary cleanup needs its environment variables set before it works.** The code is built and deployed (`functions/api/delete-image.js`), but until the five variables below exist in Cloudflare, the endpoint answers `500 Server not configured` and images will keep piling up exactly as before. Nothing else breaks — deletion of the post itself still works, since cleanup is deliberately best-effort.
 
-  **Why it can't just be fixed in the browser:** deleting a Cloudinary asset requires an authenticated Admin API call signed with the **API secret**. This site is static — there is no server — so the secret has nowhere safe to live, and shipping it in the page would let anyone wipe the whole media library. (Cloudinary's unsigned `delete_token` only lasts ~10 minutes after upload, so it can't help with deleting later.)
+  **Cloudflare dashboard → your Pages project → Settings → Environment variables** (add to **Production** *and* **Preview**, then redeploy — variables only apply to new deployments):
 
-  **What this means in practice:** images pile up in the `ttt-posts` folder as posts are deleted or covers swapped. On the free tier that's storage quota being eaten by files nothing links to.
+  | Variable | Value |
+  |---|---|
+  | `CLOUDINARY_CLOUD_NAME` | `dxow1ant2` |
+  | `CLOUDINARY_API_KEY` | from Cloudinary → Settings → API Keys |
+  | `CLOUDINARY_API_SECRET` | from the same page — **secret, never in the repo** |
+  | `SUPABASE_URL` | `https://ruzsbwgwbneqyvbdmwdb.supabase.co` |
+  | `SUPABASE_ANON_KEY` | the publishable key already used in the client |
 
-  **Two ways to solve it, when it matters:**
-  1. **Periodic cleanup (no code).** Reconcile: list everything in the `ttt-posts` folder, compare against every `cover_image_url` and any image URL inside `body`, delete whatever isn't referenced. Claude can run this on request — it has Cloudinary access. Fine while TTT is small.
-  2. **A Cloudflare Pages Function (proper fix).** Pages supports serverless functions on the free plan, and a function can hold `CLOUDINARY_API_SECRET` as an environment variable — never in the repo. The admin's delete would call it, the function would verify the caller's Supabase session and then delete the asset. This is the real solution; it's just a bigger piece of work than a static page and needs the secret configured in Cloudflare.
-
-  Decide before launch — option 1 is enough for now; option 2 is worth it once real staff are publishing regularly.
-
-## Open questions
-- **Setting a staff member's display name.** The Supabase "Add user" quick-create dialog only asks for email + password — no metadata field — so `full_name` isn't set at creation and the profile falls back to the email (which is what then shows in the admin UI). Two ways to give an account a real name: (a) open the user in Auth → *User Metadata* and add `full_name` (if that view is reachable), or (b) just set it straight on the `profiles` row (`update public.profiles set full_name = '…' where id = '…'`) — which Claude can do on request. Decide a convention when the real staff accounts get made.
+  Mark `CLOUDINARY_API_SECRET` as **encrypted/secret** in Cloudflare if it offers the option. After deploying, test by deleting a post that has a cover photo and checking the Cloudinary Media Library — Claude can confirm the folder is empty.
 
 ## Decided / accepted (not going to fix)
 - **The circular TTT badge is hidden on phones (≤480px).** It sits inches from the wordmark that says the same thing, and the space it took was what squeezed the wordmark into an unreadable 101px column. Dropping it on phones is what let the masthead read properly; it still shows on tablet and desktop. Say the word if you'd rather keep it and lose something else instead.

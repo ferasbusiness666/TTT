@@ -217,9 +217,22 @@
       if (!confirm('Delete “' + row.title + '”? This cannot be undone.')) return;
       var client = window.tttAuth && window.tttAuth.client;
       if (!client) return;
-      client.from("posts").delete().eq("id", id).then(function (res) {
-        if (res && res.error) { alert("Couldn’t delete: " + res.error.message); return; }
-        loadPosts();
+
+      // Grab the post's images BEFORE deleting the row, otherwise there's
+      // nothing left to tell us which Cloudinary files it owned — that's
+      // how orphaned photos piled up before.
+      client.from("posts").select("cover_image_url, body").eq("id", id).single().then(function (r) {
+        var images = [];
+        if (r && r.data) {
+          if (r.data.cover_image_url) images.push(r.data.cover_image_url);
+          if (window.tttUpload) images = images.concat(window.tttUpload.imageUrlsInHtml(r.data.body));
+        }
+        return client.from("posts").delete().eq("id", id).then(function (res) {
+          if (res && res.error) { alert("Couldn’t delete: " + res.error.message); return; }
+          // best-effort: the post is already gone either way
+          if (images.length && window.tttUpload) window.tttUpload.deleteImages(images);
+          loadPosts();
+        });
       });
     });
 
@@ -235,6 +248,7 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/ttt-auth.js"></script>
+  <script src="assets/ttt-upload.js"></script>
   <script>
     // Guard: only signed-in staff see the dashboard; everyone else is
     // sent to the login screen. The page stays hidden until this resolves.
