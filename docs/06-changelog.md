@@ -83,6 +83,7 @@
 - **Open search field:** a new `is-searching` state fades out the brand, tabs and login while the field is open, so it owns the header instead of being drawn over the tabs, and the header grows to fit it rather than spilling onto the story below. The compact icon-size rule needed an explicit override or the open field stayed stuck as a 38px circle.
 - **Small phones:** the wordmark's `clamp()` floor was 30px, wider than a 320px screen's brand column, so it still clipped there. Floor lowered to 24px — 320px now measures zero overflow.
 - Verified across 320 / 360 / 390 / 412px on both the homepage and a shared-stylesheet page: no clipping, search present, compact header 49px with the icon inside the header and tabs clear of it, no JS errors. **Desktop re-confirmed unchanged** (masthead 140px, 270px search pill, badge visible, wordmark 58px).
+- **Follow-up:** Fero spotted the search icon sitting slightly low against the tabs in the slim row. The tabs had padding only underneath them, so they centred 5px above the icon, which centres in the full row. Padding evened out — both now centre on the same line (measured: icon centre 29, tab centre 29, off by 0), header height unchanged at 49px.
 
 ## Category archive reads real posts
 - **`category.html` now lists real published posts.** New `archiveCard()` renderer in `ttt-posts.js` reproduces that page's own card markup (it uses `<span>`s, not the homepage's `<h3>`/`<p>`) and keeps each post type's photo ratio — articles 4:3, videos 16:9, artwork 1:1, magazines 3:2.

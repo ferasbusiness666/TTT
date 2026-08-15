@@ -719,7 +719,9 @@ button { font: inherit; }
     /* margin (not padding) narrows the scroll container itself, so tabs can
        never slide underneath the search icon — padding only adds trailing
        space inside the scroll area, which let them pass behind it. */
-    margin: -38px 46px 0 0; padding-top: 0; padding-right: 0; padding-bottom: 10px;
+    /* even padding so the tabs centre on the same line as the search icon —
+       with padding only underneath, they sat 5px higher than it */
+    margin: -38px 46px 0 0; padding: 5px 0;
   }
   /* trim the icon to the slim row's height so it can't hang below the
      header's red baseline */
