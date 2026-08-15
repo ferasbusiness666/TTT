@@ -1,7 +1,13 @@
 # Known Issues & Open Questions
 
 ## Open bugs
-None right now.
+- **Mobile header/layout is broken (reported by Fero with screenshots, 2026-08-15).** Confirmed on a real phone — this supersedes the old "mobile not yet verified" note. Specific symptoms:
+  1. **Wordmark is clipped.** "TADELE TEEN TALKS" is cut off along the bottom — the "TALKS" line is sliced in half — even when the header is in its full (expanded, un-scrolled) state. Looks like a fixed header height that the stacked three-line wordmark overflows.
+  2. **Search control is missing entirely** on phone width. `assets/ttt.js` has a mobile branch that turns the search into a round icon which expands on tap, so either the icon is being hidden or it's collapsing to zero width.
+  3. **Large dead gap above the category tabs** — a big band of empty background sits between the masthead and the ALL/ARTICLES/VIDEOS row.
+  4. **Header misbehaves on scroll.** The compact-on-scroll state (`is-compact`, toggled at 120px down / 10px up) doesn't settle correctly on mobile: the nav row detaches and the spacing jumps.
+
+  Where to look: the homepage builds its own masthead from the inline `<style>` block in `index.html`, while every other page gets one from `assets/ttt.css` + `assets/ttt.js` — so both need checking, and a fix in one place won't necessarily fix the other. This is a **visual** fix, so it's explicitly authorised: Fero asked for it. Everything else stays untouched. Most TTT readers will be on a phone, so this blocks launch.
 
 ## Decided / accepted (not going to fix)
 - **Leaked-password protection stays off — it's Pro-plan only.** Supabase's HaveIBeenPwned check requires the Pro plan; this project is on the free plan, so the toggle isn't available. Accepted: accounts are admin-created for a small, fixed staff and use strong passwords, so credential-stuffing risk is low. Revisit only if the project moves to Pro. (This is the sole remaining security-advisor warning, and it's expected.)

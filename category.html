@@ -224,5 +224,59 @@
       document.getElementById("empty").style.display = shown ? "none" : "";
     })();
   </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/ttt-auth.js"></script>
+  <script src="assets/ttt-posts.js"></script>
+  <script>
+    /* Fill the archive from real published posts.
+     *
+     * Switch rule: while the site has NO published posts, the demo cards
+     * above are left exactly as they are (so the archive isn't a bare page
+     * pre-launch). The moment TTT has published anything, this page becomes
+     * fully data-driven — real results, real count, and a real "no stories
+     * here yet" state for a category that genuinely has none. An archive is
+     * a list rather than a fixed grid, so unlike the homepage it doesn't
+     * need enough posts to "fill" a layout. */
+    (function () {
+      var client = window.tttAuth && window.tttAuth.client;
+      var P = window.tttPosts;
+      if (!client || !P) return;
+
+      var CAT_TO_TYPE = { articles: "article", videos: "video", artwork: "artwork", magazines: "magazine" };
+      var q   = new URLSearchParams(window.location.search).get("q");
+      var cat = (new URLSearchParams(window.location.search).get("cat") || "trending").toLowerCase();
+
+      function paint(posts) {
+        var grid = document.getElementById("grid");
+        grid.innerHTML = posts.map(P.archiveCard).join("");
+        document.getElementById("count").innerHTML =
+          '<span class="star">★</span> ' + posts.length + (posts.length === 1 ? " STORY" : " STORIES");
+        document.getElementById("empty").style.display = posts.length ? "none" : "";
+        // Nothing left to "load more" from — the query already returned all.
+        var more = document.querySelector(".archive-more");
+        if (more) more.style.display = "none";
+      }
+
+      P.hasPublished(client).then(function (live) {
+        if (!live) return;   // pre-launch: keep the demo archive as-is
+
+        var base = client.from("posts")
+          .select("id, title, slug, excerpt, cover_image_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name)")
+          .eq("status", "published");
+
+        if (q) {
+          // Real search across the title and the deck/excerpt.
+          var term = "%" + q.replace(/[%,]/g, " ") + "%";
+          base = base.or("title.ilike." + term + ",excerpt.ilike." + term);
+        } else if (CAT_TO_TYPE[cat]) {
+          base = base.eq("post_type", CAT_TO_TYPE[cat]);
+        }   // 'trending' (or anything unknown) lists everything
+
+        base.order("published_at", { ascending: false, nullsFirst: false }).limit(60)
+          .then(function (r) { if (!r.error) paint(r.data || []); });
+      });
+    })();
+  </script>
 </body>
 </html>

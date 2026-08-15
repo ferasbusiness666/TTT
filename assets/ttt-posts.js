@@ -114,6 +114,29 @@
       '<div class="cap"><div class="t">' + esc(p.title) + '</div><div class="a">by ' + esc(author(p)) + "</div></div></a>";
   }
 
+  /* ---- 5. archive card (category.html) ---------------------------- *
+   * Same .acard class as the homepage list, but that page authored its
+   * cards with <span>s and gives each post type its own photo ratio, so
+   * it gets its own renderer rather than being forced to share one.    */
+  var ARCHIVE_RATIO = { article: "r-4-3", video: "r-16-9", artwork: "r-1-1", magazine: "r-3-2" };
+  var ARCHIVE_PH    = { article: "4:3 photo", video: "16:9 video", artwork: "square art", magazine: "cover" };
+  var TYPE_TO_CAT   = { article: "articles", video: "videos", artwork: "artwork", magazine: "magazines" };
+
+  function archiveCard(p) {
+    var type  = p.post_type || "article";
+    var ratio = ARCHIVE_RATIO[type] || "r-4-3";
+    var box = p.cover_image_url
+      ? '<span class="media ' + ratio + '"><img src="' + esc(p.cover_image_url) + '" alt="' + esc(p.title) + '"></span>'
+      : '<span class="media ' + ratio + ' ph"><code>' + esc(ARCHIVE_PH[type] || "photo") + "</code></span>";
+    return '<a class="acard" data-cat="' + (TYPE_TO_CAT[type] || "articles") + '" href="' + link(p) + '">' + box +
+      '<span class="body">' +
+        '<span class="pill">' + esc(label(p)) + "</span>" +
+        '<span class="title">' + esc(p.title) + "</span>" +
+        (p.excerpt ? '<span class="desc">' + esc(p.excerpt) + "</span>" : "") +
+        '<span class="meta"><span>' + esc(author(p)) + '</span><span class="dot">·</span><span>' + esc(date(p)) + "</span></span>" +
+      "</span></a>";
+  }
+
   /* ---- fetch ------------------------------------------------------- *
    * Public pages only ever show PUBLISHED posts. This is filtered here
    * as well as by RLS, because a signed-in staff member's session can
@@ -137,9 +160,21 @@
     return true;
   }
 
+  /* Has TTT published anything at all? The single switch for the archive
+   * page: while the site has nothing, the demo cards stay; once anything
+   * is published the archive goes fully data-driven (real results, real
+   * count, real empty states). Asks for one row rather than an exact
+   * count — it only needs a yes/no, and it avoids depending on the
+   * Content-Range header that HEAD/count requests rely on. */
+  function hasPublished(client) {
+    return client.from("posts").select("id").eq("status", "published").limit(1)
+      .then(function (r) { return !!(r && r.data && r.data.length); })
+      .catch(function () { return false; });
+  }
+
   window.tttPosts = {
     esc: esc, link: link, author: author, label: label, date: date, media: media,
-    bentoCard: bentoCard, vcard: vcard, acard: acard, gitem: gitem,
-    fetchPosts: fetchPosts, fillSection: fillSection
+    bentoCard: bentoCard, vcard: vcard, acard: acard, gitem: gitem, archiveCard: archiveCard,
+    fetchPosts: fetchPosts, fillSection: fillSection, hasPublished: hasPublished
   };
 })();
