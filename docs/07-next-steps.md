@@ -22,7 +22,7 @@
 - [ ] Wire up the subscribe box to the `subscribers` table
 - [x] Show the **real** signed-in user's name (admin sidebar + avatar initials, editor byline) instead of the hardcoded `Liya G. Tadele` placeholder — reads `full_name` from `profiles` via `tttAuth.currentProfile()`. (Value falls back to email until a display name is set — see `05-known-issues.md`.)
 - [ ] Confirm the Founders **section content** shows exactly Liya Tadele and Ije Ezedani (the nav link to it was removed, but the section's actual content was never confirmed fixed — double check this)
-- [ ] Add the real favicon once the logo file is in place (see note in `08-seo-and-technical-checklist.md`, favicon section)
+- [x] Add the real favicon — generated from `images/preview.png` (the circular TTT logo) into `favicon.ico` + 32px/180px/512px PNGs, linked from **all six pages**. Also produced `images/og-cover.png` (1200×630, logo on the brand cream) and wired `og:`/`twitter:` share tags + meta descriptions on the three public pages.
 
 ## Before telling anyone it's ready — full security check
 - [x] Row Level Security is ON for every table — audited 2026-08-13, all 5 tables
