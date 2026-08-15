@@ -701,7 +701,7 @@ button { font: inherit; }
     justify-content: flex-start; border-radius: var(--radius-pill); box-shadow: var(--shadow-print);
   }
   .search.is-open input { display: block; }
-  .wordmark { font-size: clamp(30px, 8.5vw, 46px); }
+  .wordmark { font-size: clamp(24px, 8vw, 46px); }   /* floor was 30px, too wide for 320px phones */
   /* the three stacked lines need a couple of px more than the desktop cap */
   .brand { max-height: 124px; }
   .masthead__top { align-items: center; gap: 12px; }
@@ -711,7 +711,31 @@ button { font: inherit; }
   }
   .nav::-webkit-scrollbar { display: none; }
   .tab { flex: 0 0 auto; }
-  .masthead.is-compact .nav { margin-top: 0; padding-top: 0; padding-right: 0; }
+  /* Scrolled: pull the tabs up level with the search icon (same trick the
+     desktop rule uses) instead of leaving them stacked underneath it, where
+     they ended up touching it with no gap. padding-right keeps the tabs from
+     scrolling underneath the icon. */
+  .masthead.is-compact .nav {
+    /* margin (not padding) narrows the scroll container itself, so tabs can
+       never slide underneath the search icon — padding only adds trailing
+       space inside the scroll area, which let them pass behind it. */
+    margin: -38px 46px 0 0; padding-top: 0; padding-right: 0; padding-bottom: 10px;
+  }
+  /* trim the icon to the slim row's height so it can't hang below the
+     header's red baseline */
+  .masthead.is-compact .search { width: 38px; min-width: 38px; height: 38px; }
+  /* ...but the OPEN field must still win over that size, or tapping search
+     while scrolled leaves it stuck as a 38px circle */
+  .masthead.is-compact .search.is-open { width: auto; min-width: 0; height: 46px; }
+  /* and the slim header has to make room for the field rather than letting
+     it spill over the story below */
+  .masthead.is-searching { min-height: 74px; }
+  /* While the search field is open it owns the header outright — otherwise
+     it was drawn on top of the tabs, which read as a broken overlay. */
+  .masthead.is-searching .brand,
+  .masthead.is-searching .nav,
+  .masthead.is-searching .login,
+  .masthead.is-searching .logo-badge { opacity: 0; pointer-events: none; }
 }
 
 /* MOBILE — single column everywhere */
@@ -1118,14 +1142,19 @@ button { font: inherit; }
     // when tapped. Mirrors the behaviour assets/ttt.js gives every other
     // page (this page builds its own header, so it needs its own copy).
     (function () {
+      var head = document.querySelector('.masthead');
       var searchEl = document.querySelector('.masthead .search');
       var input = searchEl && searchEl.querySelector('input');
       if (!searchEl || !input) return;
-      function close() { searchEl.classList.remove('is-open'); }
+      function close() {
+        searchEl.classList.remove('is-open');
+        head.classList.remove('is-searching');
+      }
       searchEl.addEventListener('click', function (e) {
         if (window.matchMedia('(max-width: 720px)').matches && !searchEl.classList.contains('is-open')) {
           e.preventDefault();
           searchEl.classList.add('is-open');
+          head.classList.add('is-searching');   // clears the tabs out from under it
           setTimeout(function () { input.focus(); }, 40);
         }
       });

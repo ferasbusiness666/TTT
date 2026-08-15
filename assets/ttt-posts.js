@@ -48,13 +48,18 @@
     return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   }
   /* A real cover when the post has one, otherwise the same placeholder box
-   * the mockup uses — so a post without a photo still fills its slot. */
+   * the mockup uses — so a post without a photo still fills its slot.
+   *
+   * Real photos are NOT forced into the slot's shape. Posts carry portrait,
+   * square, landscape and 4:5 images, and cropping them all to one ratio
+   * (object-fit: cover) slices the picture. `.is-natural` drops the fixed
+   * aspect-ratio so the image keeps its own proportions and the card grows
+   * to match. Placeholders keep a ratio — they have no intrinsic size. */
   function media(p, ratioCls, phLabel, extra) {
-    var cls = "media" + (ratioCls ? " " + ratioCls : "");
     if (p.cover_image_url) {
-      return '<div class="' + cls + '"><img src="' + esc(p.cover_image_url) + '" alt="' + esc(p.title) + '">' + (extra || "") + "</div>";
+      return '<div class="media is-natural"><img src="' + esc(p.cover_image_url) + '" alt="' + esc(p.title) + '">' + (extra || "") + "</div>";
     }
-    return '<div class="' + cls + ' ph"><code>' + esc(phLabel) + "</code>" + (extra || "") + "</div>";
+    return '<div class="media ' + (ratioCls || "") + ' ph"><code>' + esc(phLabel) + "</code>" + (extra || "") + "</div>";
   }
 
   /* ---- 1. trending grid (bento) ----------------------------------- *
@@ -126,7 +131,7 @@
     var type  = p.post_type || "article";
     var ratio = ARCHIVE_RATIO[type] || "r-4-3";
     var box = p.cover_image_url
-      ? '<span class="media ' + ratio + '"><img src="' + esc(p.cover_image_url) + '" alt="' + esc(p.title) + '"></span>'
+      ? '<span class="media is-natural"><img src="' + esc(p.cover_image_url) + '" alt="' + esc(p.title) + '"></span>'
       : '<span class="media ' + ratio + ' ph"><code>' + esc(ARCHIVE_PH[type] || "photo") + "</code></span>";
     return '<a class="acard" data-cat="' + (TYPE_TO_CAT[type] || "articles") + '" href="' + link(p) + '">' + box +
       '<span class="body">' +

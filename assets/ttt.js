@@ -115,21 +115,28 @@
       var searchEl = header.querySelector(".search");
       var input = header.querySelector(".search input");
       if (searchEl && input) {
+        // is-searching clears the tabs/brand out from under the open field,
+        // which otherwise gets drawn on top of them.
+        var closeSearch = function () {
+          searchEl.classList.remove("is-open");
+          header.classList.remove("is-searching");
+        };
         searchEl.addEventListener("click", function (e) {
           if (window.matchMedia("(max-width: 720px)").matches && !searchEl.classList.contains("is-open")) {
             e.preventDefault();
             searchEl.classList.add("is-open");
+            header.classList.add("is-searching");
             setTimeout(function () { input.focus(); }, 40);
           }
         });
         input.addEventListener("blur", function () {
-          if (!input.value.trim()) searchEl.classList.remove("is-open");
+          if (!input.value.trim()) closeSearch();
         });
         input.addEventListener("keydown", function (e) {
           if (e.key === "Enter" && input.value.trim()) {
             window.location.href = "category.html?q=" + encodeURIComponent(input.value.trim());
           } else if (e.key === "Escape") {
-            input.value = ""; searchEl.classList.remove("is-open"); input.blur();
+            input.value = ""; closeSearch(); input.blur();
           }
         });
       }

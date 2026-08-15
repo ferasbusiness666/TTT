@@ -113,6 +113,12 @@ button { font: inherit; }
 /* ---- media slot: any <img> fills via object-fit, never distorts ---- */
 .media { display: block; position: relative; width: 100%; overflow: hidden; background: rgba(26,15,5,0.06); }
 .media > img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* A real photo keeps its own proportions instead of being cropped into the
+   slot's ratio — posts carry portrait, square, landscape and 4:5 images and
+   forcing one shape cuts the picture. Wins over the r-* ratio classes. */
+.media.is-natural { aspect-ratio: auto; height: auto; }
+.media.is-natural > img { height: auto; object-fit: contain; }
+
 .media.r-16-9 { aspect-ratio: 16 / 9; }
 .media.r-4-3  { aspect-ratio: 4 / 3; }
 .media.r-1-1  { aspect-ratio: 1 / 1; }
@@ -456,6 +462,9 @@ button { font: inherit; }
 .articles {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
   padding: 0 var(--pad-page); max-width: var(--maxw); margin: 0 auto;
+  /* cards size to their own photo rather than stretching to the tallest in
+     the row, which left a block of empty paper under the shorter ones */
+  align-items: start;
 }
 .acard {
   border: var(--line); border-radius: var(--radius-card);
@@ -700,8 +709,12 @@ button { font: inherit; }
 .archive {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
   padding: 22px var(--pad-page) 0; max-width: var(--maxw); margin: 0 auto;
+  align-items: start;   /* see .articles — cards follow their photo's height */
 }
-.archive .acard { height: 100%; }
+/* was height:100%, which forced every card to the tallest in its row and left
+   a slab of empty paper under the shorter photos. Cards follow their own
+   photo now (see align-items:start above). */
+.archive .acard { height: auto; }
 .archive-more { display: flex; justify-content: center; padding: 36px var(--pad-page) 8px; }
 .archive-empty {
   max-width: var(--maxw); margin: 0 auto; padding: 60px var(--pad-page);
@@ -1101,7 +1114,7 @@ table.posts tbody tr:hover { background: rgba(26,15,5,0.03); }
     justify-content: flex-start; border-radius: var(--radius-pill); box-shadow: var(--shadow-print);
   }
   .search.is-open input { display: block; }
-  .wordmark { font-size: clamp(30px, 8.5vw, 46px); }
+  .wordmark { font-size: clamp(24px, 8vw, 46px); }   /* floor was 30px, too wide for 320px phones */
   .masthead__top { align-items: center; gap: 12px; }
   .nav {
     flex-wrap: nowrap; overflow-x: auto; padding-bottom: 12px;
@@ -1109,7 +1122,31 @@ table.posts tbody tr:hover { background: rgba(26,15,5,0.03); }
   }
   .nav::-webkit-scrollbar { display: none; }
   .tab { flex: 0 0 auto; }
-  .masthead.is-compact .nav { margin-top: 0; padding-top: 0; padding-right: 0; }
+  /* Scrolled: pull the tabs up level with the search icon (same trick the
+     desktop rule uses) instead of leaving them stacked underneath it, where
+     they ended up touching it with no gap. padding-right keeps the tabs from
+     scrolling underneath the icon. */
+  .masthead.is-compact .nav {
+    /* margin (not padding) narrows the scroll container itself, so tabs can
+       never slide underneath the search icon — padding only adds trailing
+       space inside the scroll area, which let them pass behind it. */
+    margin: -38px 46px 0 0; padding-top: 0; padding-right: 0; padding-bottom: 10px;
+  }
+  /* trim the icon to the slim row's height so it can't hang below the
+     header's red baseline */
+  .masthead.is-compact .search { width: 38px; min-width: 38px; height: 38px; }
+  /* ...but the OPEN field must still win over that size, or tapping search
+     while scrolled leaves it stuck as a 38px circle */
+  .masthead.is-compact .search.is-open { width: auto; min-width: 0; height: 46px; }
+  /* and the slim header has to make room for the field rather than letting
+     it spill over the story below */
+  .masthead.is-searching { min-height: 74px; }
+  /* While the search field is open it owns the header outright — otherwise
+     it was drawn on top of the tabs, which read as a broken overlay. */
+  .masthead.is-searching .brand,
+  .masthead.is-searching .nav,
+  .masthead.is-searching .login,
+  .masthead.is-searching .logo-badge { opacity: 0; pointer-events: none; }
 }
 
 @media (max-width: 620px) {
