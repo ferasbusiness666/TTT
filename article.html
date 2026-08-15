@@ -138,5 +138,111 @@
   <footer id="site-footer"></footer>
 
   <script src="assets/ttt.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/ttt-auth.js"></script>
+  <script>
+    /* Fill this template from the real post named by ?post=<slug>.
+     *
+     * If the slug isn't in the database (or there's no ?post= at all) the
+     * page is left exactly as authored — the static sample above. That
+     * keeps the existing demo cards working unchanged while real posts
+     * render real content. Only published posts are visible to the public;
+     * RLS lets signed-in staff preview their own drafts through the same URL. */
+    (function () {
+      var slug = new URLSearchParams(window.location.search).get("post");
+      if (!slug) return;
+      var client = window.tttAuth && window.tttAuth.client;
+      if (!client) return;
+
+      function initials(name) {
+        if (!name) return "TTT";
+        var base = name.indexOf("@") > -1 ? name.split("@")[0] : name;
+        var parts = base.replace(/[^A-Za-z]+/g, " ").trim().split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+        return "TTT";
+      }
+      function fmtDate(s) {
+        if (!s) return "";
+        var d = new Date(s);
+        return isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+      }
+      function readTime(html) {
+        var words = String(html || "").replace(/<[^>]*>/g, " ").trim().split(/\s+/).filter(Boolean).length;
+        return Math.max(1, Math.round(words / 200)) + " min read";
+      }
+
+      client.from("posts")
+        .select("title, excerpt, body, cover_image_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name, role)")
+        .eq("slug", slug).maybeSingle()
+        .then(function (r) {
+          var p = r && r.data;
+          if (!p) return;   // unknown slug → leave the static sample in place
+
+          var author = (p.author && p.author.full_name) || "TTT Staff";
+          var role   = (p.author && p.author.role) || "staff";
+          role = role.charAt(0).toUpperCase() + role.slice(1);
+          var cat = (p.category && p.category.name) || null;
+
+          document.title = p.title + " — Tadele Teen Talks";
+
+          var catEl = document.querySelector(".article-cat");
+          if (catEl) catEl.textContent = cat ? ("★ " + cat.toUpperCase()) : "★ " + String(p.post_type || "article").toUpperCase();
+
+          var h1 = document.querySelector(".article-head h1");
+          if (h1) h1.textContent = p.title || "";
+
+          var deck = document.querySelector(".article-head .deck");
+          if (deck) {
+            if (p.excerpt) { deck.textContent = p.excerpt; deck.style.display = ""; }
+            else deck.style.display = "none";
+          }
+
+          var av = document.querySelector(".byline-row .av");
+          if (av) av.textContent = initials(author);
+          var nameEl = document.querySelector(".byline-row .who .n");
+          if (nameEl) nameEl.textContent = author;
+          var metaEl = document.querySelector(".byline-row .who .m");
+          if (metaEl) metaEl.textContent = role + " · " + fmtDate(p.published_at || p.created_at) + " · " + readTime(p.body);
+
+          // Cover: swap in the real image, or drop the block when there isn't one
+          // (a "cover photo" placeholder on a real story reads as a bug).
+          var cover = document.querySelector(".article-cover");
+          if (cover) {
+            if (p.cover_image_url) {
+              var media = cover.querySelector(".media");
+              if (media) {
+                media.classList.remove("ph");
+                media.innerHTML = "";
+                var img = document.createElement("img");
+                img.src = p.cover_image_url;
+                img.alt = p.title || "";
+                media.appendChild(img);
+              }
+              var cap = cover.querySelector(".cap");
+              if (cap) cap.style.display = "none";   // no caption field in the schema yet
+            } else {
+              cover.style.display = "none";
+            }
+          }
+
+          var prose = document.querySelector(".prose");
+          if (prose) prose.innerHTML = p.body || "";
+
+          // No tag or author-bio fields exist in the schema yet — hide the
+          // sample's versions rather than show another post's copy.
+          var tags = document.querySelector(".article-tags");
+          if (tags) tags.style.display = "none";
+
+          var box = document.querySelector(".author-box");
+          if (box) {
+            var bav = box.querySelector(".av");   if (bav) bav.textContent = initials(author);
+            var bn  = box.querySelector(".n");    if (bn) bn.textContent = author;
+            var br  = box.querySelector(".r");    if (br) br.textContent = role;
+            var bb  = box.querySelector(".b");    if (bb) bb.style.display = "none";
+          }
+        });
+    })();
+  </script>
 </body>
 </html>
