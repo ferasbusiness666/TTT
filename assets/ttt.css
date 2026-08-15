@@ -1119,6 +1119,15 @@ table.posts tbody tr:hover { background: rgba(26,15,5,0.03); }
 }
 
 @media (max-width: 480px) {
+  /* On a phone the header tools (search + login + badge) squeezed the brand
+     column down to ~100px, so the wordmark was sliced off on the right. The
+     circular badge is the same wordmark repeated inches away, so it stands
+     down here, and LOGIN tightens slightly — together that hands the brand
+     back the width it needs to read properly. */
+  .logo-badge { display: none; }
+  .login { font-size: 14px; letter-spacing: 0.08em; padding: 7px 12px 5px; }
+  .login svg { width: 12px; height: 12px; }
+
   .bento { grid-template-columns: 1fr; }
   .k-featured { grid-column: 1; }
   .section-label .rule { display: none; }

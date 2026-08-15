@@ -1,13 +1,25 @@
 # Known Issues & Open Questions
 
 ## Open bugs
-- **Mobile header/layout is broken (reported by Fero with screenshots, 2026-08-15).** Confirmed on a real phone — this supersedes the old "mobile not yet verified" note. Specific symptoms:
+None right now.
+
+## Decided / accepted (not going to fix)
+- **The circular TTT badge is hidden on phones (≤480px).** It sits inches from the wordmark that says the same thing, and the space it took was what squeezed the wordmark into an unreadable 101px column. Dropping it on phones is what let the masthead read properly; it still shows on tablet and desktop. Say the word if you'd rather keep it and lose something else instead.
+
+## Resolved
+- **Mobile header/layout was broken (reported by Fero with screenshots, fixed 2026-08-15).** All four reported symptoms fixed and verified in a phone-sized browser (390×844) on both the homepage and the shared-stylesheet pages. Original symptoms:
   1. **Wordmark is clipped.** "TADELE TEEN TALKS" is cut off along the bottom — the "TALKS" line is sliced in half — even when the header is in its full (expanded, un-scrolled) state. Looks like a fixed header height that the stacked three-line wordmark overflows.
   2. **Search control is missing entirely** on phone width. `assets/ttt.js` has a mobile branch that turns the search into a round icon which expands on tap, so either the icon is being hidden or it's collapsing to zero width.
   3. **Large dead gap above the category tabs** — a big band of empty background sits between the masthead and the ALL/ARTICLES/VIDEOS row.
   4. **Header misbehaves on scroll.** The compact-on-scroll state (`is-compact`, toggled at 120px down / 10px up) doesn't settle correctly on mobile: the nav row detaches and the spacing jumps.
 
-  Where to look: the homepage builds its own masthead from the inline `<style>` block in `index.html`, while every other page gets one from `assets/ttt.css` + `assets/ttt.js` — so both need checking, and a fix in one place won't necessarily fix the other. This is a **visual** fix, so it's explicitly authorised: Fero asked for it. Everything else stays untouched. Most TTT readers will be on a phone, so this blocks launch.
+  **Root cause:** the homepage carries its own copy of the masthead CSS (inline `<style>` in `index.html`) and never received the mobile treatment the rest of the site already had in `assets/ttt.css` — no icon-search, no wordmark down-size, no scrolling tab row. On top of that, a genuine site-wide bug affected *every* page: the header tools (search + login + badge = 245px of a 358px row) squeezed the brand column to ~101px while the wordmark needed 128px, so it was sliced off on the right.
+
+  **What was changed:** ported the `≤720px` header rules into `index.html` (icon search that expands on tap, wordmark at 8.5vw so all three lines fit, tabs on one horizontally-scrolling row) plus the search JS the page was missing; and in **both** `index.html` and `assets/ttt.css`, hid the redundant circular badge and slightly tightened LOGIN at ≤480px to give the wordmark its width back.
+
+  **Measured result** (390px viewport): brand column 101px → 177px with zero overflow; expanded header 219px → 176px; scrolled header 132px → 93px; tab row 92px → 53px (one line instead of two); search present in both states. Desktop verified unchanged — every rule sits inside a mobile media query.
+
+  Still worth doing: Fero should confirm on his own phone, since a simulated viewport isn't the same as real hardware (see the launch checklist in `07-next-steps.md`).
 
 ## Decided / accepted (not going to fix)
 - **Leaked-password protection stays off — it's Pro-plan only.** Supabase's HaveIBeenPwned check requires the Pro plan; this project is on the free plan, so the toggle isn't available. Accepted: accounts are admin-created for a small, fixed staff and use strong passwords, so credential-stuffing risk is low. Revisit only if the project moves to Pro. (This is the sole remaining security-advisor warning, and it's expected.)

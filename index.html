@@ -673,14 +673,61 @@ button { font: inherit; }
   .acard.lead { flex-direction: column; }
 }
 
-/* MOBILE — single column everywhere; search hidden, login stays */
+/* ---- PHONE / SMALL-TABLET HEADER ----------------------------------- *
+ * This page carries its own copy of the masthead styles, so it never got
+ * the mobile treatment the rest of the site has in assets/ttt.css. These
+ * rules bring it in line, fixing four reported phone bugs:
+ *   1. the wordmark was sliced in half — it wraps to three lines in the
+ *      narrow brand column and overflowed .brand's 110px cap. Sized to
+ *      match ttt.css (8.5vw) so all three lines fit inside the cap
+ *      instead of making the header taller.
+ *   2. the search had been hidden outright (display:none). It's back as
+ *      the same round icon the other pages use, expanding to a full-width
+ *      field when tapped.
+ *   3/4. the tab row wrapped onto two lines and the scrolled header left
+ *      an empty band above it (the login/badge collapse their width but
+ *      keep their height). Tabs now scroll sideways on one line, and the
+ *      restored search fills that row, so the dead space is gone.        */
+@media (max-width: 720px) {
+  .search {
+    display: flex; width: 44px; min-width: 44px; height: 44px; padding: 0;
+    justify-content: center; border-radius: 50%; cursor: pointer;
+  }
+  .search input { display: none; }
+  .search svg { width: 18px; height: 18px; }
+  .search.is-open {
+    position: absolute; z-index: 6; top: 14px; left: var(--pad-page); right: var(--pad-page);
+    width: auto; min-width: 0; height: 46px; padding: 9px 18px;
+    justify-content: flex-start; border-radius: var(--radius-pill); box-shadow: var(--shadow-print);
+  }
+  .search.is-open input { display: block; }
+  .wordmark { font-size: clamp(30px, 8.5vw, 46px); }
+  /* the three stacked lines need a couple of px more than the desktop cap */
+  .brand { max-height: 124px; }
+  .masthead__top { align-items: center; gap: 12px; }
+  .nav {
+    flex-wrap: nowrap; overflow-x: auto; padding-bottom: 12px;
+    scrollbar-width: none; -webkit-overflow-scrolling: touch;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; }
+  .masthead.is-compact .nav { margin-top: 0; padding-top: 0; padding-right: 0; }
+}
+
+/* MOBILE — single column everywhere */
 @media (max-width: 480px) {
+  /* On a phone the header tools (search + login + badge) squeezed the brand
+     column down to ~100px, so the wordmark was sliced off on the right. The
+     circular badge is the same wordmark repeated inches away, so it stands
+     down here, and LOGIN tightens slightly — together that hands the brand
+     back the width it needs to read properly. */
+  .logo-badge { display: none; }
+  .login { font-size: 14px; letter-spacing: 0.08em; padding: 7px 12px 5px; }
+  .login svg { width: 12px; height: 12px; }
+
   .bento { grid-template-columns: 1fr; }
   .k-featured { grid-column: 1; }
-  .search { display: none; }
-  .masthead__top { align-items: center; }
   .section-label .rule { display: none; }
-  .wordmark { font-size: clamp(34px, 11vw, 48px); }
   .articles { grid-template-columns: 1fr; }
   .acard.lead { grid-column: auto; }
   .gallery { columns: 2; }
@@ -1067,6 +1114,29 @@ button { font: inherit; }
         tab.classList.add('is-active');
       });
     });
+    // Search — full pill on desktop; on phones a round icon that expands
+    // when tapped. Mirrors the behaviour assets/ttt.js gives every other
+    // page (this page builds its own header, so it needs its own copy).
+    (function () {
+      var searchEl = document.querySelector('.masthead .search');
+      var input = searchEl && searchEl.querySelector('input');
+      if (!searchEl || !input) return;
+      function close() { searchEl.classList.remove('is-open'); }
+      searchEl.addEventListener('click', function (e) {
+        if (window.matchMedia('(max-width: 720px)').matches && !searchEl.classList.contains('is-open')) {
+          e.preventDefault();
+          searchEl.classList.add('is-open');
+          setTimeout(function () { input.focus(); }, 40);
+        }
+      });
+      input.addEventListener('blur', function () { if (!input.value.trim()) close(); });
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && input.value.trim()) {
+          window.location.href = 'category.html?q=' + encodeURIComponent(input.value.trim());
+        } else if (e.key === 'Escape') { input.value = ''; close(); input.blur(); }
+      });
+    })();
+
     // Newsletter — friendly confirm (prototype)
     document.querySelector('.nl-form').addEventListener('submit', function () {
       var btn = this.querySelector('button');
