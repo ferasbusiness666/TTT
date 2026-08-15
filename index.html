@@ -1074,5 +1074,69 @@ button { font: inherit; }
       this.querySelector('input').value = '';
     });
   </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/ttt-auth.js"></script>
+  <script src="assets/ttt-posts.js"></script>
+  <script>
+    /* Fill the four card sections from real published posts.
+     *
+     * Each section only takes over once there are enough posts to fill all
+     * of its slots (see fillSection in ttt-posts.js) — until then the demo
+     * cards written into the HTML above stay exactly as they are, so the
+     * live site never looks half-empty. The slot classes below are the
+     * ones the design uses; they drive the grid layout and colours, so
+     * they stay fixed while the content comes from the database. */
+    (function () {
+      var client = window.tttAuth && window.tttAuth.client;
+      var P = window.tttPosts;
+      if (!client || !P) return;
+
+      var BENTO_SLOTS = [
+        { cls: "c-peach k-opinionvideo" },
+        { cls: "c-pink k-featured", featured: true },
+        { cls: "c-mint k-artwork" },
+        { cls: "c-blue k-review" },
+        { cls: "c-yellow k-photography" },
+        { cls: "c-peach k-newsvideo" },
+        { cls: "c-lavender k-opinionart" }
+      ];
+      var RAIL_COLORS = ["c-peach", "c-blue", "c-mint", "c-yellow", "c-lavender"];
+      var GALLERY_SLOTS = [
+        { ar: "3/4", color: "var(--card-pink)",     label: "portrait" },
+        { ar: "1/1", color: "var(--card-blue)",     label: "square" },
+        { ar: "4/5", color: "var(--card-yellow)",   label: "4:5" },
+        { ar: "4/3", color: "var(--card-mint)",     label: "landscape" },
+        { ar: "1/1", color: "var(--card-lavender)", label: "square" },
+        { ar: "3/4", color: "var(--card-peach)",    label: "portrait" },
+        { ar: "4/3", color: "var(--card-blue)",     label: "landscape" },
+        { ar: "1/1", color: "var(--card-pink)",     label: "square" }
+      ];
+
+      // Trending grid — newest published posts of any type.
+      P.fetchPosts(client, { limit: BENTO_SLOTS.length }).then(function (posts) {
+        P.fillSection(document.querySelector("main.bento"), posts, BENTO_SLOTS, P.bentoCard);
+      });
+
+      // Videos & Blogs rail.
+      P.fetchPosts(client, { type: "video", limit: RAIL_COLORS.length }).then(function (posts) {
+        P.fillSection(document.querySelector(".rail"), posts, RAIL_COLORS, function (p, color) {
+          return P.vcard(p, color);
+        });
+      });
+
+      // Latest Articles — first entry is the wide lead card.
+      P.fetchPosts(client, { type: "article", limit: 6 }).then(function (posts) {
+        P.fillSection(document.querySelector("section.articles"), posts, [0, 1, 2, 3, 4, 5], function (p, i) {
+          return P.acard(p, i === 0);
+        });
+      });
+
+      // Art & Photography gallery.
+      P.fetchPosts(client, { type: "artwork", limit: GALLERY_SLOTS.length }).then(function (posts) {
+        P.fillSection(document.querySelector("section.gallery"), posts, GALLERY_SLOTS, P.gitem);
+      });
+    })();
+  </script>
 </body>
 </html>
