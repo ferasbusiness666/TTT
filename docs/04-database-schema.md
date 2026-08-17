@@ -208,6 +208,31 @@ create policy "staff can view subscriber list"
 
 ---
 
+## Hardening applied after the security stress test
+
+Two migrations tighten the original schema (see `09-security-stress-test.md`):
+
+```sql
+-- validate_subscriber_emails (#1)
+-- Public INSERT stays — the newsletter needs it — but junk is rejected.
+alter table public.subscribers
+  add constraint subscribers_email_format check (
+    char_length(email) between 6 and 254
+    and email ~ '^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$'
+  );
+-- plus a BEFORE INSERT/UPDATE trigger lowercasing and trimming the address,
+-- so Foo@Bar.com and foo@bar.com can't both be stored past the unique index.
+
+-- narrow_public_profile_columns (#4)
+-- RLS filters rows, not columns, so column-level grants are the right tool:
+-- the public may read a byline, nothing more.
+revoke select on public.profiles from anon;
+grant  select (id, full_name) on public.profiles to anon;
+grant  select on public.profiles to authenticated;   -- staff still see role
+```
+
+**Consequence worth knowing:** any *public* query that selects `profiles.role` now fails with `42501`. `article.html` used to request `author:profiles(full_name, role)` for its byline and had to stop — the byline shows date + read time instead. Staff-only code (`tttAuth.currentProfile()`) still reads `role` because `authenticated` keeps full access.
+
 ## Notes
 
 - **Accounts aren't created through the app.** Add each staff person directly in Supabase → Authentication → Users. The `on_auth_user_created` trigger then creates their `profiles` row automatically — no manual insert needed.

@@ -195,15 +195,13 @@
       }
 
       client.from("posts")
-        .select("title, excerpt, body, cover_image_url, video_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name, role)")
+        .select("title, excerpt, body, cover_image_url, video_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name)")
         .eq("slug", slug).maybeSingle()
         .then(function (r) {
           var p = r && r.data;
           if (!p) return;   // unknown slug → leave the static sample in place
 
           var author = (p.author && p.author.full_name) || "TTT Staff";
-          var role   = (p.author && p.author.role) || "staff";
-          role = role.charAt(0).toUpperCase() + role.slice(1);
           var cat = (p.category && p.category.name) || null;
 
           document.title = p.title + " — Tadele Teen Talks";
@@ -225,7 +223,7 @@
           var nameEl = document.querySelector(".byline-row .who .n");
           if (nameEl) nameEl.textContent = author;
           var metaEl = document.querySelector(".byline-row .who .m");
-          if (metaEl) metaEl.textContent = role + " · " + fmtDate(p.published_at || p.created_at) + " · " + readTime(p.body);
+          if (metaEl) metaEl.textContent = fmtDate(p.published_at || p.created_at) + " · " + readTime(p.body);
 
           // A post with a YouTube link leads with the video — that IS the
           // story for a video post — and the cover photo steps aside.
@@ -295,7 +293,7 @@
           if (box) {
             var bav = box.querySelector(".av");   if (bav) bav.textContent = initials(author);
             var bn  = box.querySelector(".n");    if (bn) bn.textContent = author;
-            var br  = box.querySelector(".r");    if (br) br.textContent = role;
+            var br  = box.querySelector(".r");    if (br) br.style.display = "none";
             var bb  = box.querySelector(".b");    if (bb) bb.style.display = "none";
           }
         });
