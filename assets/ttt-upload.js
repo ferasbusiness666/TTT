@@ -1,17 +1,24 @@
 /* =====================================================================
    TADELE TEEN TALKS — IMAGE UPLOADS  (ttt-upload.js)
    =====================================================================
-   Uploads photos straight from the browser to Cloudinary using an
-   UNSIGNED upload preset. Unsigned is the right call here: signing needs
-   a server holding an API secret, and this site is static — there is
-   nowhere safe to keep one. The cloud name and preset name below are
-   public by design (they ship in the page); the API secret must NEVER
-   appear in this repo.
+   Uploads photos from the browser to Cloudinary.
 
-   The preset (`ttt-posts`) restricts uploads to image formats and drops
-   everything in the ttt-posts folder with an unguessable public ID.
-   Cloudinary checks real file contents, not the extension, so renaming
-   a .txt to .png does not get through — verified.
+   Uploads are SIGNED where possible: /api/sign-upload (a Pages Function
+   holding the API secret) issues a short-lived signature to a signed-in
+   staff member, and Cloudinary then only accepts an upload matching
+   exactly the parameters that were signed. The site started out using an
+   unsigned preset, which the stress test rightly flagged — anyone reading
+   the page source could upload to the account (finding #5).
+
+   The unsigned preset remains as a FALLBACK so a signing outage can never
+   stop a writer mid-post. That also means the hole isn't closed until the
+   `ttt-posts` preset is switched to Signed (or deleted) in the Cloudinary
+   dashboard — see docs/07-next-steps.md.
+
+   Either way Cloudinary checks real file contents, not the extension, so
+   renaming a .txt to .png does not get through — verified. The cloud name
+   and preset name are public by design; the API secret must NEVER appear
+   in this repo.
 
    The preset has no max file size, so the cap is enforced here before
    anything leaves the device. That also means a 40MB phone photo fails
@@ -44,17 +51,54 @@
     return null;
   }
 
+  /* Ask the server to sign this upload (staff only). Resolves with null if
+   * signing isn't available, in which case the caller falls back to the
+   * unsigned preset — that keeps uploads working while signed uploads are
+   * being verified, and means a signing outage never blocks a writer. */
+  function getSignature() {
+    if (!window.tttAuth || !window.tttAuth.getSession) return Promise.resolve(null);
+    return window.tttAuth.getSession().then(function (res) {
+      var session = res && res.data && res.data.session;
+      if (!session) return null;
+      return fetch("/api/sign-upload", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + session.access_token }
+      }).then(function (r) { return r.ok ? r.json() : null; });
+    }).catch(function () { return null; });
+  }
+
   /* Upload one image. Resolves with { url, publicId, width, height }.
    * onProgress (optional) receives 0-100. Uses XHR rather than fetch so
-   * we get real progress events on slow phone connections. */
+   * we get real progress events on slow phone connections.
+   *
+   * Prefers a SIGNED upload (see /api/sign-upload): the unsigned preset is
+   * usable by anyone who reads the page source, so signing it to a
+   * signed-in staff member is the stronger path. Falls back to the preset
+   * if signing is unavailable, so this can be rolled out without risking
+   * the upload feature. */
   function upload(file, onProgress) {
-    return new Promise(function (resolve, reject) {
-      var problem = validate(file);
-      if (problem) { reject(new Error(problem)); return; }
+    var problem = validate(file);
+    if (problem) return Promise.reject(new Error(problem));
 
+    return getSignature().then(function (signed) {
+      return sendUpload(file, onProgress, signed);
+    });
+  }
+
+  function sendUpload(file, onProgress, signed) {
+    return new Promise(function (resolve, reject) {
       var form = new FormData();
       form.append("file", file);
-      form.append("upload_preset", UPLOAD_PRESET);
+
+      if (signed && signed.signature) {
+        form.append("api_key", signed.apiKey);
+        form.append("signature", signed.signature);
+        Object.keys(signed.params).forEach(function (k) {
+          form.append(k, signed.params[k]);   // must match what was signed, exactly
+        });
+      } else {
+        form.append("upload_preset", UPLOAD_PRESET);
+      }
 
       var xhr = new XMLHttpRequest();
       xhr.open("POST", ENDPOINT, true);
