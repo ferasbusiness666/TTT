@@ -25,6 +25,21 @@
 - [ ] Confirm the Founders **section content** shows exactly Liya Tadele and Ije Ezedani (the nav link to it was removed, but the section's actual content was never confirmed fixed — double check this)
 - [x] Add the real favicon — generated from `images/preview.png` (the circular TTT logo) into `favicon.ico` + 32px/180px/512px PNGs, linked from **all six pages**. Also produced `images/og-cover.png` (1200×630, logo on the brand cream) and wired `og:`/`twitter:` share tags + meta descriptions on the three public pages.
 
+## Security hardening (from the stress test — see `09-security-stress-test.md`)
+Ordered by value-for-effort, not by the report's numbering.
+
+- [ ] **Security headers via a `_headers` file** — HSTS, `X-Frame-Options: DENY`, a strict CSP, and pin `Access-Control-Allow-Origin` to the site origin. One small file closes findings #6, #7, #8 and #9, and is the single biggest win available.
+- [ ] **Escape output in the admin table** (#3) — `p.status` is interpolated straight into a `class` attribute, and admin's `esc()` doesn't escape quotes. Small, unambiguous fix.
+- [ ] **Sanitize post bodies before rendering** (#2) — `article.html` does `prose.innerHTML = p.body`. Add sanitization (DOMPurify or an allow-list) so a pasted `<img onerror=…>` can't run for readers. Pair with the CSP above.
+- [ ] **Email validation on `subscribers`** (#1) — add a format CHECK constraint + length cap. Keep the public INSERT (the newsletter needs it); reject junk like `##not-valid##`.
+- [ ] **Narrow the public view of `profiles`** (#4) — expose `full_name` only, not `role`/`created_at`.
+- [ ] **Check `role` in `tttAuth.guard()`** (#14) — today any authenticated account passes the admin/editor guard. Only one account exists, so no exposure yet, but it should verify staff.
+- [ ] **Real 404 + `robots.txt` + `sitemap.xml`** (#10) — every unknown path currently returns the homepage with HTTP 200. `08-seo and technical checklist.md` already has the content ready to use.
+- [ ] **Sign Cloudinary uploads for signed-in staff** (#5) — now that a Pages Function exists it can sign uploads, closing anonymous upload abuse. Bigger job; do after the cheap wins.
+- [ ] **Remove the fake admin stats** (#13) — `VIEWS · 30D 12.4k` and "↑ 4 this month" are hardcoded and never updated.
+- [ ] **Per-slug "story not found" state** (#12) — instead of silently showing the demo essay under someone else's headline.
+- [ ] Low-priority tidy-ups (#15–#19): dead `href="#"` links, login `autocomplete` attributes, the decorative "Remember me", the no-op admin search and LOAD MORE button.
+
 ## Before telling anyone it's ready — full security check
 - [x] Row Level Security is ON for every table — audited 2026-08-13, all 5 tables
 - [x] Every policy matches the plan: public read-only, staff write — audited; grants also tightened to least privilege (migration `harden_table_grants_least_privilege`)
