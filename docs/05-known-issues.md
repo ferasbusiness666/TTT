@@ -1,25 +1,17 @@
 # Known Issues & Open Questions
 
 ## Open bugs
-- **Automatic Cloudinary cleanup needs its environment variables set before it works.** The code is built and deployed (`functions/api/delete-image.js`), but until the five variables below exist in Cloudflare, the endpoint answers `500 Server not configured` and images will keep piling up exactly as before. Nothing else breaks — deletion of the post itself still works, since cleanup is deliberately best-effort.
-
-  **Cloudflare dashboard → your Pages project → Settings → Environment variables** (add to **Production** *and* **Preview**, then redeploy — variables only apply to new deployments):
-
-  | Variable | Value |
-  |---|---|
-  | `CLOUDINARY_CLOUD_NAME` | `dxow1ant2` |
-  | `CLOUDINARY_API_KEY` | from Cloudinary → Settings → API Keys |
-  | `CLOUDINARY_API_SECRET` | from the same page — **secret, never in the repo** |
-  | `SUPABASE_URL` | `https://ruzsbwgwbneqyvbdmwdb.supabase.co` |
-  | `SUPABASE_ANON_KEY` | the publishable key already used in the client |
-
-  Mark `CLOUDINARY_API_SECRET` as **encrypted/secret** in Cloudflare if it offers the option. After deploying, test by deleting a post that has a cover photo and checking the Cloudinary Media Library — Claude can confirm the folder is empty.
+None right now.
 
 ## Decided / accepted (not going to fix)
 - **The circular TTT badge is hidden on phones (≤480px).** It sits inches from the wordmark that says the same thing, and the space it took was what squeezed the wordmark into an unreadable 101px column. Dropping it on phones is what let the masthead read properly; it still shows on tablet and desktop. Say the word if you'd rather keep it and lose something else instead.
 - **Leaked-password protection stays off — it's Pro-plan only.** Supabase's HaveIBeenPwned check requires the Pro plan; this project is on the free plan, so the toggle isn't available. Accepted: accounts are admin-created for a small, fixed staff and use strong passwords, so credential-stuffing risk is low. Revisit only if the project moves to Pro. (This is the sole remaining security-advisor warning, and it's expected.)
 
 ## Resolved
+- **Orphaned Cloudinary images — now deleted automatically (confirmed working 2026-08-15).** Deleting a post removes its cover and body photos; replacing a cover removes the one it replaced. Verified end to end: Fero deleted a post with a photo and the Cloudinary folder came back empty.
+  - Needed a server, so the site gained its first Pages Function (`functions/api/delete-image.js`) holding `CLOUDINARY_API_SECRET` as a Cloudflare environment variable — never in the repo — and verifying the caller's Supabase session before doing anything.
+  - **Two things went wrong on the way, both worth remembering:** (1) the first Cloudinary API key was created with the *Media Library User* role, which authenticated fine but returned `Request forbidden due to missing permissions (actions=["delete"])` — the role has no delete action, so the key was switched to Master Admin; (2) the failure was invisible because cleanup is best-effort and only logged to the console, which is precisely why the problem looked like "nothing happened". The admin now shows the real Cloudinary reason when a photo can't be removed.
+  - Lesson for future keys: if deletes silently stop working, check the key's **role** first — the plumbing is rarely the problem.
 - **Cards cropped photos and left dead space (Fero, fixed 2026-08-15).** Every card style forced real photos into a fixed per-type ratio, cropping portrait/square/wide images to one shape, and `.archive .acard { height:100% }` stretched short cards to the tallest in the row leaving empty paper under them. Cards now use a natural-ratio media box and size to their own photo. Verified with four real images of different shapes — ratios preserved exactly, heights independent.
 - **Mobile header, second pass (Fero, fixed 2026-08-15).** After the first fix the search icon still touched the tabs when scrolled, and the open field was drawn over them. Tabs now sit level with the icon on one 49px row (down from 95px), the reserved gap uses `margin` so tabs can't scroll behind the icon, and an `is-searching` state clears the header while the field is open. Wordmark `clamp()` floor lowered to 24px so 320px phones stop clipping. Checked at 320/360/390/412px on both header implementations; desktop unchanged.
 - **Mobile header/layout was broken (reported by Fero with screenshots, fixed 2026-08-15).** All four reported symptoms fixed and verified in a phone-sized browser (390×844) on both the homepage and the shared-stylesheet pages. Original symptoms:
