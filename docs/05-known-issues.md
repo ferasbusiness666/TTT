@@ -3,6 +3,11 @@
 ## Open bugs
 None right now.
 
+## Worth knowing (transitional behaviour, by design)
+- **During the gap between "first post published" and "enough posts to fill the homepage", the demo cards link to a "story isn't here" page.** The homepage keeps its mockup cards until a section can be filled entirely, but `article.html` switches to a real not-found state as soon as *any* post is published (that was the point of finding #12 — showing the Suburbia essay under a different headline is worse than admitting the story doesn't exist). So with 1–6 published posts, a leftover demo card can lead to a not-found page.
+
+  This resolves itself as TTT publishes: each section flips to real posts and its links become real. If it's annoying in the meantime, the fix is to delete the demo cards from `index.html` outright — a design change, so ask first.
+
 ## Decided / accepted (not going to fix)
 - **The circular TTT badge is hidden on phones (≤480px).** It sits inches from the wordmark that says the same thing, and the space it took was what squeezed the wordmark into an unreadable 101px column. Dropping it on phones is what let the masthead read properly; it still shows on tablet and desktop. Say the word if you'd rather keep it and lose something else instead.
 - **Leaked-password protection stays off — it's Pro-plan only.** Supabase's HaveIBeenPwned check requires the Pro plan; this project is on the free plan, so the toggle isn't available. Accepted: accounts are admin-created for a small, fixed staff and use strong passwords, so credential-stuffing risk is low. Revisit only if the project moves to Pro. (This is the sole remaining security-advisor warning, and it's expected.)

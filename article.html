@@ -194,12 +194,49 @@
         return Math.max(1, Math.round(words / 200)) + " min read";
       }
 
+      /* Turn the page into an honest "no such story" state: keep the site
+       * chrome, drop the borrowed article. */
+      function showNotFound() {
+        document.title = "Story not found — Tadele Teen Talks";
+        var noindex = document.createElement("meta");
+        noindex.name = "robots"; noindex.content = "noindex";
+        document.head.appendChild(noindex);
+
+        var cat = document.querySelector(".article-cat");
+        if (cat) cat.textContent = "★ NOT FOUND";
+        var h1 = document.querySelector(".article-head h1");
+        if (h1) h1.textContent = "This story isn’t here";
+        var deck = document.querySelector(".article-head .deck");
+        if (deck) {
+          deck.textContent = "It may have been unpublished, or the link might be wrong. Try the archive instead.";
+          deck.style.display = "";
+        }
+        [".byline-row", ".article-cover", ".prose", ".article-tags", ".author-box"]
+          .forEach(function (sel) {
+            var el = document.querySelector(sel);
+            if (el) el.style.display = "none";
+          });
+        // the "MORE FROM TTT" strip and its label are still useful — leave them
+      }
+
       client.from("posts")
         .select("title, excerpt, body, cover_image_url, video_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name)")
         .eq("slug", slug).maybeSingle()
         .then(function (r) {
           var p = r && r.data;
-          if (!p) return;   // unknown slug → leave the static sample in place
+          if (!p) {
+            /* Unknown slug. While the site has no published posts at all we
+             * leave the demo sample in place (pre-launch showcase, same rule
+             * as the homepage cards). But once TTT is publishing, showing the
+             * Suburbia essay under someone else's headline is just wrong —
+             * finding #12 — so say plainly that the story isn't here. */
+            if (window.tttPosts && window.tttPosts.hasPublished) {
+              window.tttPosts.hasPublished(client).then(function (live) {
+                if (live) showNotFound();
+              });
+            }
+            return;
+          }
 
           var author = (p.author && p.author.full_name) || "TTT Staff";
           var cat = (p.category && p.category.name) || null;
