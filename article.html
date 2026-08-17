@@ -150,6 +150,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/ttt-auth.js"></script>
   <script src="assets/ttt-posts.js"></script>
+  <script src="assets/ttt-sanitize.js"></script>
   <script>
     /* Fill this template from the real post named by ?post=<slug>.
      *
@@ -275,8 +276,15 @@
             }
           }
 
+          // Sanitise before inserting: post bodies are staff-written, but the
+          // editor accepts pasted HTML, so this is the layer that stops a
+          // stray <img onerror=…> running for readers (see finding #2).
           var prose = document.querySelector(".prose");
-          if (prose) prose.innerHTML = p.body || "";
+          if (prose) {
+            prose.innerHTML = window.tttSanitize
+              ? window.tttSanitize.clean(p.body)
+              : "";   // no sanitiser loaded → show nothing rather than raw HTML
+          }
 
           // No tag or author-bio fields exist in the schema yet — hide the
           // sample's versions rather than show another post's copy.

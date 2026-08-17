@@ -118,7 +118,14 @@
     function getParam(k) { return new URLSearchParams(window.location.search).get(k); }
     var VIEW = getParam("view"); // 'drafts' | null
 
-    function esc(s) { return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    // Escapes quotes as well as angle brackets: these values go into HTML
+    // ATTRIBUTES too, where a bare " would let a stored value break out and
+    // add its own (see finding #3 in docs/09-security-stress-test.md).
+    function esc(s) {
+      return String(s == null ? "" : s)
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
 
     // post_type → the display label + card colour used by the mockup, so the
     // table looks identical whether the data is hardcoded or from the DB.
@@ -153,7 +160,7 @@
           '</div></td>' +
           '<td class="hide-sm"><span class="cat-chip" style="background:' + color + '">' + label.toUpperCase() + '</span></td>' +
           '<td class="hide-sm">' + esc(author) + '</td>' +
-          '<td><span class="status ' + p.status + '">' + String(p.status).toUpperCase() + '</span></td>' +
+          '<td><span class="status ' + esc(p.status) + '">' + esc(String(p.status).toUpperCase()) + '</span></td>' +
           '<td class="hide-sm">' + date + '</td>' +
           '<td><div class="row-actions">' +
             '<a class="icon-btn" href="article.html?post=' + encodeURIComponent(slug) + '" title="View" aria-label="View">' + EYE + '</a>' +
