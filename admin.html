@@ -59,7 +59,7 @@
       <span class="grow"></span>
       <label class="adm-search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
-        <input type="text" placeholder="search posts..." aria-label="Search posts" />
+        <input type="text" id="post-search" placeholder="search posts..." aria-label="Search posts" />
       </label>
       <a class="btn btn--red btn--sm" href="editor.html">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
@@ -260,6 +260,21 @@
         });
       });
     });
+
+    // Search box: filter the loaded rows by title/excerpt as you type. It
+    // filters what's already fetched rather than re-querying, which keeps it
+    // instant for a small desk (#15 — it previously did nothing at all).
+    (function () {
+      var box = document.getElementById("post-search");
+      if (!box) return;
+      box.addEventListener("input", function () {
+        var q = box.value.trim().toLowerCase();
+        document.querySelectorAll("#posts-body tr").forEach(function (tr) {
+          if (!q) { tr.style.display = ""; return; }
+          tr.style.display = tr.textContent.toLowerCase().indexOf(q) > -1 ? "" : "none";
+        });
+      });
+    })();
 
     // Drafts view: swap headings + active sidebar item
     if (VIEW === "drafts") {

@@ -147,6 +147,46 @@
   <footer id="site-footer"></footer>
 
   <script src="assets/ttt.js"></script>
+  <script>
+    // Share buttons were href="#" with no behaviour (#15). Copy-link uses the
+    // clipboard; the other opens the device share sheet where that exists
+    // (Instagram has no web share URL for arbitrary links), falling back to
+    // copying so it always does something.
+    (function () {
+      var buttons = document.querySelectorAll(".byline-row .share .sbtn");
+      if (!buttons.length) return;
+
+      function flash(btn, ok) {
+        var original = btn.getAttribute("aria-label");
+        btn.setAttribute("aria-label", ok ? "Link copied" : "Couldn\u2019t copy");
+        btn.style.background = ok ? "var(--card-mint)" : "var(--card-pink)";
+        setTimeout(function () {
+          btn.setAttribute("aria-label", original);
+          btn.style.background = "";
+        }, 1400);
+      }
+      function copyLink(btn) {
+        var url = window.location.href;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(function () { flash(btn, true); })
+            .catch(function () { flash(btn, false); });
+        } else { flash(btn, false); }
+      }
+
+      buttons.forEach(function (btn) {
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          var label = (btn.getAttribute("aria-label") || "").toLowerCase();
+          if (label.indexOf("copy") === -1 && navigator.share) {
+            navigator.share({ title: document.title, url: window.location.href })
+              .catch(function () { /* user dismissed the sheet — nothing to do */ });
+          } else {
+            copyLink(btn);
+          }
+        });
+      });
+    })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/ttt-auth.js"></script>
   <script src="assets/ttt-posts.js"></script>

@@ -28,17 +28,17 @@
 ## Security hardening (from the stress test — see `09-security-stress-test.md`)
 Ordered by value-for-effort, not by the report's numbering.
 
-- [ ] **Security headers via a `_headers` file** — HSTS, `X-Frame-Options: DENY`, a strict CSP, and pin `Access-Control-Allow-Origin` to the site origin. One small file closes findings #6, #7, #8 and #9, and is the single biggest win available.
-- [ ] **Escape output in the admin table** (#3) — `p.status` is interpolated straight into a `class` attribute, and admin's `esc()` doesn't escape quotes. Small, unambiguous fix.
-- [ ] **Sanitize post bodies before rendering** (#2) — `article.html` does `prose.innerHTML = p.body`. Add sanitization (DOMPurify or an allow-list) so a pasted `<img onerror=…>` can't run for readers. Pair with the CSP above.
-- [ ] **Email validation on `subscribers`** (#1) — add a format CHECK constraint + length cap. Keep the public INSERT (the newsletter needs it); reject junk like `##not-valid##`.
-- [ ] **Narrow the public view of `profiles`** (#4) — expose `full_name` only, not `role`/`created_at`.
-- [ ] **Check `role` in `tttAuth.guard()`** (#14) — today any authenticated account passes the admin/editor guard. Only one account exists, so no exposure yet, but it should verify staff.
-- [ ] **Real 404 + `robots.txt` + `sitemap.xml`** (#10) — every unknown path currently returns the homepage with HTTP 200. `08-seo and technical checklist.md` already has the content ready to use.
-- [ ] **Sign Cloudinary uploads for signed-in staff** (#5) — now that a Pages Function exists it can sign uploads, closing anonymous upload abuse. Bigger job; do after the cheap wins.
-- [ ] **Remove the fake admin stats** (#13) — `VIEWS · 30D 12.4k` and "↑ 4 this month" are hardcoded and never updated.
-- [ ] **Per-slug "story not found" state** (#12) — instead of silently showing the demo essay under someone else's headline.
-- [ ] Low-priority tidy-ups (#15–#19): dead `href="#"` links, login `autocomplete` attributes, the decorative "Remember me", the no-op admin search and LOAD MORE button.
+- [x] **Security headers via a `_headers` file** — HSTS, `X-Frame-Options: DENY`, a strict CSP, and pin `Access-Control-Allow-Origin` to the site origin. One small file closes findings #6, #7, #8 and #9, and is the single biggest win available.
+- [x] **Escape output in the admin table** (#3) — `p.status` is interpolated straight into a `class` attribute, and admin's `esc()` doesn't escape quotes. Small, unambiguous fix.
+- [x] **Sanitize post bodies before rendering** (#2) — `assets/ttt-sanitize.js`, allow-list based; tested against 11 payloads — `article.html` does `prose.innerHTML = p.body`. Add sanitization (DOMPurify or an allow-list) so a pasted `<img onerror=…>` can't run for readers. Pair with the CSP above.
+- [x] **Email validation on `subscribers`** (#1) — add a format CHECK constraint + length cap. Keep the public INSERT (the newsletter needs it); reject junk like `##not-valid##`.
+- [x] **Narrow the public view of `profiles`** (#4) — column-level grants; anon sees `id, full_name` only — expose `full_name` only, not `role`/`created_at`.
+- [x] **Check `role` in `tttAuth.guard()`** (#14) — today any authenticated account passes the admin/editor guard. Only one account exists, so no exposure yet, but it should verify staff.
+- [x] **Real 404 + `robots.txt` + `sitemap.xml`** (#10) — every unknown path currently returns the homepage with HTTP 200. `08-seo and technical checklist.md` already has the content ready to use.
+- [~] **Sign Cloudinary uploads for signed-in staff** (#5) — built (`/api/sign-upload`), client prefers it and falls back to the preset. **Not closed until the `ttt-posts` preset is switched to Signed (or deleted) in the Cloudinary dashboard** — a manual step, and only worth doing once you've confirmed a photo still uploads. — now that a Pages Function exists it can sign uploads, closing anonymous upload abuse. Bigger job; do after the cheap wins.
+- [x] **Remove the fake admin stats** (#13) — the views card is now a real PHOTOS count — `VIEWS · 30D 12.4k` and "↑ 4 this month" are hardcoded and never updated.
+- [x] **Per-slug "story not found" state** (#12) — instead of silently showing the demo essay under someone else's headline.
+- [~] Low-priority tidy-ups (#15–#19) — done: footer Instagram/TikTok/YouTube now point at the documented @tadeleteentalks accounts, admin search filters the list, article share buttons copy the link (or open the share sheet), login inputs have `autocomplete`. **Still open:** the Discord button has no invite URL on record, "Forgot password?" needs a password-reset page to land on before it can be wired, and "Remember me" is still decorative.: dead `href="#"` links, login `autocomplete` attributes, the decorative "Remember me", the no-op admin search and LOAD MORE button.
 
 ## Before telling anyone it's ready — full security check
 - [x] Row Level Security is ON for every table — audited 2026-08-13, all 5 tables
