@@ -1,0 +1,29 @@
+# =====================================================================
+# Cloudflare Pages response headers
+# =====================================================================
+# Closes findings #6 (no HSTS), #7 (clickjacking), #8 (no CSP) and #9
+# (Access-Control-Allow-Origin: *) from docs/09-security-stress-test.md.
+#
+# ABOUT THE CSP: script-src has to keep 'unsafe-inline' for now, because
+# every page in this site carries inline <script> blocks and inline
+# onclick handlers — dropping it would break the whole site until those
+# are refactored out. That's a real limitation, BUT the policy still
+# breaks the attack chain the stress test described: connect-src and
+# img-src are pinned to known hosts, so an injected script cannot send a
+# stolen token anywhere (fetch/XHR/beacon and image-pixel exfiltration
+# are both blocked), and script-src blocks loading attacker JS from
+# another origin. frame-ancestors 'none' kills the clickjacking route.
+#
+# If a host is ever added (a new CDN, an embed), it must be added here or
+# the browser will silently block it — check the console first when
+# something external stops loading.
+
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+  Access-Control-Allow-Origin: https://tadeleteentalk.pages.dev
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://res.cloudinary.com; connect-src 'self' https://ruzsbwgwbneqyvbdmwdb.supabase.co https://api.cloudinary.com; frame-src https://www.youtube-nocookie.com https://www.youtube.com; media-src 'self' https://res.cloudinary.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
