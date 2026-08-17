@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# No reason for "TTT admin login" to be findable on Google.
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /editor
+Disallow: /editor.html
+Disallow: /login
+Disallow: /login.html
+Disallow: /api/
+
+Sitemap: https://tadeleteentalk.pages.dev/sitemap.xml

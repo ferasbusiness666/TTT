@@ -55,8 +55,34 @@
         window.location.replace("login.html");
         return false;
       }
-      document.documentElement.style.visibility = "";
-      return true;
+      // A session alone isn't authorisation (finding #14): check the account
+      // is actually staff. Today every account is, but the editor can create,
+      // publish and delete posts and trigger Cloudinary deletions, so it
+      // shouldn't open for any future non-staff login.
+      //
+      // Note this is convenience, not the security boundary — the real
+      // enforcement is RLS on the database, which a hidden page can't bypass.
+      return client.from("profiles").select("role").eq("id", session.user.id).maybeSingle()
+        .then(function (r) {
+          var role = r && r.data && r.data.role;
+          // No profile row yet (trigger lag) is treated as staff rather than
+          // locking a legitimate new account out of the desk.
+          if (role && role !== "staff" && role !== "editor" && role !== "admin") {
+            alert("This account doesn't have access to the editorial desk.");
+            return signOut().then(function () {
+              window.location.replace("login.html");
+              return false;
+            });
+          }
+          document.documentElement.style.visibility = "";
+          return true;
+        })
+        .catch(function () {
+          // Couldn't read the role (offline, RLS hiccup) — the session is
+          // still valid and RLS guards the data, so let them through.
+          document.documentElement.style.visibility = "";
+          return true;
+        });
     }).catch(function () {
       window.location.replace("login.html");
       return false;

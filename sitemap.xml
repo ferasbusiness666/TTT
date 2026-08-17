@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Static for now: only the pages that exist as fixed files. Individual
+  article URLs can't be listed until posts exist in the database, at which
+  point this should be GENERATED rather than hand-edited (tracked in
+  docs/07-next-steps.md). Staff screens are deliberately absent.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://tadeleteentalk.pages.dev/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>https://tadeleteentalk.pages.dev/category.html?cat=articles</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://tadeleteentalk.pages.dev/category.html?cat=videos</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://tadeleteentalk.pages.dev/category.html?cat=artwork</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>https://tadeleteentalk.pages.dev/category.html?cat=magazines</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
+</urlset>
