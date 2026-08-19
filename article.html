@@ -374,6 +374,22 @@
             var bb  = box.querySelector(".b");    if (bb) bb.style.display = "none";
           }
         });
+
+      /* MORE FROM TTT — the three cards under the story were the same
+       * hardcoded posts on every article, including on the article they
+       * link away from. Now: the newest published posts, minus whichever
+       * one the reader is already on. Asks for four so removing the current
+       * post still leaves three; if there aren't three the authored demo
+       * cards stay, same fallback rule as the homepage sections. */
+      var P = window.tttPosts;
+      if (P) {
+        P.fetchPosts(client, { limit: 4 }).then(function (posts) {
+          var others = posts.filter(function (x) { return x.slug !== slug; }).slice(0, 3);
+          P.fillSection(document.querySelector("section.articles"), others, [0, 1, 2], function (x) {
+            return P.acard(x, false);
+          });
+        });
+      }
     })();
   </script>
 </body>
