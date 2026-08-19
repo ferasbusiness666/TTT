@@ -1,5 +1,40 @@
 # Next Steps
 
+## The working list — do these one at a time, top to bottom
+Compiled 2026-08-19 from a full read of the docs, all seven pages and the live
+database. This is the ordered queue; the sections further down hold the detail
+and the history. **M** = Claude can build it now, **F** = only Fero can do it,
+**?** = needs a decision before anything can be built.
+
+| # | Who | Item |
+|---|-----|------|
+| 1  | M | **Library/gallery shows every post's cover**, each image linking to its own post (cover images only — decided). |
+| 2  | M | **Credit line for Fero** below the founders — designed and built the site, contact `feroomon10400@gmail.com`. |
+| 3  | ? | **Founders section content** — currently four invented people. Should be Liya Tadele and Ije Ezedani. Needs their real roles and bios from Fero; nothing here gets invented. |
+| 4  | M | **Wire the newsletter subscribe box** to the `subscribers` table. The form is `onsubmit="return false;"` — typing an email does nothing today. |
+| 5  | M | **"MORE FROM TTT"** on `article.html` → real related posts (same three hardcoded cards appear under every article). |
+| 6  | ? | **The ABOUT link has no page.** The footer links to `href="#"` and no About page exists — only seven pages do. Build one, or remove the link. |
+| 7  | M+F | **Password-reset page**, so "Forgot password?" has somewhere to land. Fero adds the redirect URL in Supabase → Authentication → URL Configuration. |
+| 8  | M | **"Remember me" made real** — unchecked means the session ends when the browser closes. Code only, looks identical. |
+| 9  | ? | **"Request a contributor account"** on the login page points at `href="#"` and no such flow is planned. Remove it, or point it at an email. |
+| 10 | M | **"LOAD MORE STORIES"** on `category.html` does nothing. Wire it or remove it. |
+| 11 | F | **Discord invite URL** — the footer button has no destination. Instagram, TikTok and YouTube are already wired to `@tadeleteentalks`. |
+| 12 | ? | **Invented numbers still showing publicly** — `VOL. 03 · NOV 2025` in the masthead and footer, `40+ teen contributors` on the login screen, `VOL. 03 — The Suburbia Issue` on the category page. Replace with true values or remove. |
+| 13 | F | **Publish real posts** — enough to fill the homepage sections (trending 7, rail 5, articles 6, gallery 8). |
+| 14 | M | **Retire the demo cards** from `index.html` once #13 is done, so every section reads from the database. Order matters: posts first, then removal, or the homepage goes blank in between. |
+| 15 | M | **Look pass on real posts** — check they actually read well once published (raised alongside the trending-order fix). |
+| 16 | F | **Create the real staff accounts** in Supabase → Authentication → Users. Set `full_name` or the name shows as the email address. |
+| 17 | F | **Check the site on a real phone.** The mobile fixes were only ever verified in a simulated 390px browser. |
+| 18 | F | **Decide the newsletter-sending approach** — Resend, or send manually. "Deferred" is a valid answer; it doesn't block launch. |
+| 19 | M | **Re-confirm the access rules** once subscribe is wired — that nothing beyond published posts and subscriber inserts is reachable without logging in. |
+
+Nothing security-related is open. Everything above is features, content or polish.
+
+## Newly found 2026-08-19 (were not tracked anywhere)
+- **There is no About page.** The footer's ABOUT link is `href="#"`. The site has exactly seven pages: `index`, `article`, `category`, `login`, `admin`, `editor`, `404`. Either an About page gets written or the link goes.
+- **"Request a contributor account →"** on `login.html` is a dead link, and no contributor-application flow exists or is planned. It reads like a promise the site can't keep.
+- **Invented numbers are live.** `VOL. 03 · NOV 2025` (masthead + footer), `40+ teen contributors` (login screen), `VOL. 03 — The Suburbia Issue` (category page). These came from the original mockup and have never been checked against reality — worth fixing before anyone outside the team sees the site.
+
 ## Before building
 - [x] Decide hosting → Cloudflare Pages, private repo (see `02-tech-stack-and-decisions.md`)
 - [x] Decide stack → Supabase + Cloudinary + YouTube, confirmed over Cloudflare D1 (see `02-tech-stack-and-decisions.md`)
@@ -18,7 +53,7 @@
 - [x] **Orphaned Cloudinary images** — built automatic cleanup via a Cloudflare Pages Function (`functions/api/delete-image.js`). Deleting a post removes its cover and body images; replacing a cover removes the old one. **Needs its environment variables set in Cloudflare before it works — see `05-known-issues.md`.**
 - [x] Wire up real login (Supabase Auth, email/password) — `assets/ttt-auth.js`; login.html signs in, admin/editor guard-redirect when signed out, log-out ends the session. **Needs a staff account to actually sign in (see below).**
 - [x] Wire up real post creation/editing (saves to the `posts` table) — editor Save Draft / Publish insert/update `posts` (author = signed-in user, slug auto-generated, status draft/published); the editor loads an existing post via `editor.html?id=`; the admin dashboard lists real posts (with author name, type→colour, date) and its publish-toggle and delete act on the DB. Publish is single-click (saves + publishes); a minimal **category** picker is wired (seeded `categories` + a second dropdown; posts store `category_id`). **Not yet:** cover image (`cover_image_url`) + `video_url` wait on the Cloudinary/YouTube step.
-- [x] Wire up cover photo / image upload to Cloudinary — unsigned preset `ttt-posts` on cloud `dxow1ant2`; the editor's ADD COVER PHOTO and in-body image button upload straight from the browser and the post stores the hosted URL. Delivery is optimised per slot (`f_auto,q_auto,w_*`) — measured 4.3MB → 370KB on a test photo. **Not yet:** a `video_url` (YouTube) field — the schema has the column but the editor has no input for it.
+- [x] Wire up cover photo / image upload to Cloudinary — unsigned preset `ttt-posts` on cloud `dxow1ant2`; the editor's ADD COVER PHOTO and in-body image button upload straight from the browser and the post stores the hosted URL. Delivery is optimised per slot (`f_auto,q_auto,w_*`) — measured 4.3MB → 370KB on a test photo. The YouTube `video_url` field was added afterwards and is wired (`#video-url` in the editor, saved and reloaded with the post), so this item is fully done.
 - [ ] Create the real staff accounts in Supabase
 - [ ] Wire up the subscribe box to the `subscribers` table
 - [x] Show the **real** signed-in user's name (admin sidebar + avatar initials, editor byline) instead of the hardcoded `Liya G. Tadele` placeholder — reads `full_name` from `profiles` via `tttAuth.currentProfile()`. (Value falls back to email until a display name is set — see `05-known-issues.md`.)
