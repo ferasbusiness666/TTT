@@ -29,7 +29,53 @@
     return;
   }
 
-  var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  /* "Remember me" — supabase-js keeps the session in localStorage, which
+   * survives closing the browser. When the box is left unchecked the
+   * session should die with the tab instead, so the client writes through
+   * this shim: it picks sessionStorage or localStorage based on a flag the
+   * login page sets just before signing in.
+   *
+   * Reads check both stores, so a page loaded later in the same tab finds
+   * a session-only login. A NEW tab has neither the flag nor the
+   * sessionStorage entry, so there is nothing to find — which is exactly
+   * what "don't remember me" should mean. Removal clears both, so signing
+   * out can never leave a stale token behind in the other store. */
+  var SESSION_ONLY = "ttt.session-only";
+
+  function writeStore() {
+    try {
+      return window.sessionStorage.getItem(SESSION_ONLY) === "1"
+        ? window.sessionStorage
+        : window.localStorage;
+    } catch (e) { return window.localStorage; }
+  }
+
+  var storage = {
+    getItem: function (k) {
+      try { return window.sessionStorage.getItem(k) || window.localStorage.getItem(k); }
+      catch (e) { return null; }
+    },
+    setItem: function (k, v) {
+      try { writeStore().setItem(k, v); } catch (e) {}
+    },
+    removeItem: function (k) {
+      try { window.sessionStorage.removeItem(k); } catch (e) {}
+      try { window.localStorage.removeItem(k); } catch (e) {}
+    }
+  };
+
+  /* Called by the login page before signIn. Must be set first: it decides
+   * where the very first session write lands. */
+  function setRemember(remember) {
+    try {
+      if (remember) window.sessionStorage.removeItem(SESSION_ONLY);
+      else window.sessionStorage.setItem(SESSION_ONLY, "1");
+    } catch (e) {}
+  }
+
+  var client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    auth: { storage: storage, persistSession: true, autoRefreshToken: true }
+  });
 
   function signIn(email, password) {
     return client.auth.signInWithPassword({ email: email, password: password });
@@ -120,6 +166,7 @@
     signOut: signOut,
     getSession: getSession,
     guard: guard,
-    currentProfile: currentProfile
+    currentProfile: currentProfile,
+    setRemember: setRemember
   };
 })();

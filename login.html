@@ -51,7 +51,7 @@
 
           <div class="auth-row">
             <label style="display:flex; align-items:center; gap:7px; color:var(--ttt-muted); cursor:pointer;">
-              <input type="checkbox" style="width:auto;" /> Remember me
+              <input id="remember" type="checkbox" checked style="width:auto;" /> Remember me
             </label>
             <a href="mailto:feroomon10400@gmail.com?subject=TTT%20password%20reset">Contact the administrator</a>
           </div>
@@ -109,6 +109,11 @@
 
         btn.disabled = true;
         btn.textContent = "SIGNING IN…";
+
+        // Decides where the session is stored, so it has to be set before
+        // signing in — unchecked means the session ends with the browser.
+        var remember = document.getElementById("remember");
+        if (window.tttAuth.setRemember) window.tttAuth.setRemember(!remember || remember.checked);
 
         window.tttAuth.signIn(email, pw).then(function (res) {
           if (res.error) {
