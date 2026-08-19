@@ -36,6 +36,8 @@ create table public.profiles (
 
 alter table public.profiles enable row level security;
 
+-- NOTE: this policy was replaced later — see "stop_anon_enumerating_profiles"
+-- in the migrations block below. Kept here so the original schema reads true.
 create policy "profiles are publicly readable"
   on public.profiles for select
   to anon, authenticated
@@ -210,7 +212,7 @@ create policy "staff can view subscriber list"
 
 ## Hardening applied after the security stress test
 
-Two migrations tighten the original schema (see `09-security-stress-test.md`):
+Three migrations tighten the original schema (see `09-security-stress-test.md`):
 
 ```sql
 -- validate_subscriber_emails (#1)
@@ -229,7 +231,31 @@ alter table public.subscribers
 revoke select on public.profiles from anon;
 grant  select (id, full_name) on public.profiles to anon;
 grant  select on public.profiles to authenticated;   -- staff still see role
+
+-- stop_anon_enumerating_profiles (#4, second half)
+-- The column grants above stopped anon reading `role`/`created_at`, but the
+-- row policy was still `using (true)` — so anyone with the public key could
+-- list every staff member's name and auth UUID, including people who have
+-- never published. Anon now sees a profile only if that person has a
+-- published post, i.e. exactly the bylines already visible on the site.
+drop policy "profiles are publicly readable" on public.profiles;
+
+create policy "published authors are publicly readable"
+  on public.profiles for select to anon
+  using (
+    exists (
+      select 1 from public.posts p
+      where p.author_id = profiles.id
+        and p.status = 'published'
+    )
+  );
+
+create policy "profiles are readable when signed in"
+  on public.profiles for select to authenticated
+  using (true);
 ```
+
+**Why `id` is still readable by anon:** it looks like the UUID could be revoked too, but PostgREST resolves `author:profiles(full_name)` with a join on `profiles.id`, so revoking SELECT on that column returns `42501` for the whole embed and every byline on the site disappears. Tested and reverted. The row policy is what limits the exposure instead: no published posts, no readable profiles.
 
 **Consequence worth knowing:** any *public* query that selects `profiles.role` now fails with `42501`. `article.html` used to request `author:profiles(full_name, role)` for its byline and had to stop — the byline shows date + read time instead. Staff-only code (`tttAuth.currentProfile()`) still reads `role` because `authenticated` keeps full access.
 
