@@ -1278,8 +1278,12 @@ button { font: inherit; }
         });
       });
 
-      // Art & Photography gallery.
-      P.fetchPosts(client, { type: "artwork", limit: GALLERY_SLOTS.length }).then(function (posts) {
+      /* Art & Photography gallery — the wall shows the cover image of any
+       * post that has one, not just posts typed "artwork", and each picture
+       * links to the post it came from. Photos on an essay or a video are
+       * part of what TTT makes; keeping them out left the wall empty while
+       * real work sat on the site. Covers only, so one post appears once. */
+      P.fetchPosts(client, { withCover: true, limit: GALLERY_SLOTS.length }).then(function (posts) {
         P.fillSection(document.querySelector("section.gallery"), posts, GALLERY_SLOTS, P.gitem);
       });
     })();

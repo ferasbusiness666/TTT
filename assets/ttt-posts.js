@@ -167,6 +167,10 @@
       .select("id, title, slug, excerpt, cover_image_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name)")
       .eq("status", "published");
     if (opts.type) q = q.eq("post_type", opts.type);
+    /* The gallery wall is a wall of pictures — a post with no cover would
+     * render as a coloured placeholder box, which reads as a broken image
+     * rather than art. Ask the database to skip those instead. */
+    if (opts.withCover) q = q.not("cover_image_url", "is", null);
     return q.order("published_at", { ascending: false, nullsFirst: false })
             .limit(opts.limit || 12)
             .then(function (r) { return (r && r.data) || []; });
