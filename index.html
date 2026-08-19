@@ -1227,9 +1227,25 @@ button { font: inherit; }
         { ar: "1/1", color: "var(--card-pink)",     label: "square" }
       ];
 
+      /* The slot array above is in DOM order, which is NOT importance order:
+       * .k-featured is the big card (2 columns x 2 rows) but it sits at
+       * index 1, so filling the slots in sequence put the newest post in a
+       * small top-left card and the second-newest in the hero. This maps
+       * post rank -> slot index instead: newest to the featured slot, then
+       * the rest across the small cards in date order. DOM order is
+       * untouched, so the grid looks exactly the same on every screen. */
+      var BENTO_BY_IMPORTANCE = [1, 0, 2, 3, 4, 5, 6];
+
+      function byImportance(posts) {
+        if (posts.length < BENTO_SLOTS.length) return posts;   // fillSection keeps the demo cards
+        var ordered = [];
+        BENTO_BY_IMPORTANCE.forEach(function (slotIndex, rank) { ordered[slotIndex] = posts[rank]; });
+        return ordered;
+      }
+
       // Trending grid — newest published posts of any type.
       P.fetchPosts(client, { limit: BENTO_SLOTS.length }).then(function (posts) {
-        P.fillSection(document.querySelector("main.bento"), posts, BENTO_SLOTS, P.bentoCard);
+        P.fillSection(document.querySelector("main.bento"), byImportance(posts), BENTO_SLOTS, P.bentoCard);
       });
 
       // Videos & Blogs rail.
