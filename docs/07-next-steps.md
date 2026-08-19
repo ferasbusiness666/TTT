@@ -30,6 +30,19 @@ and the history. **M** = Claude can build it now, **F** = only Fero can do it,
 
 Nothing security-related is open. Everything above is features, content or polish.
 
+## Later — error + attack reporting to Telegram (decided 2026-08-19, not started)
+Parked at Fero's request; the decision is made, the build is not. Rationale for building rather than buying is in `02-tech-stack-and-decisions.md`.
+
+**What to build (small):**
+- `assets/` gets a `window.onerror` + `unhandledrejection` handler that POSTs to a new `/api/report` Pages Function.
+- The CSP in `_headers` gains a `report-to` so **CSP violations land in the same place** — that is the piece that catches real XSS attempts, and it costs almost nothing because the policy already exists.
+- The Function forwards to a Telegram bot. **`TELEGRAM_BOT_TOKEN` goes in a Cloudflare environment variable, never in the repo** — same rule as `CLOUDINARY_API_SECRET`. Fero creates the bot with @BotFather and pastes the token into Cloudflare himself.
+- The endpoint needs a hard rate cap. Without one, the first bot that finds it turns Fero's phone into a slot machine.
+
+**Free and worth turning on regardless, no code:** Cloudflare's free plan includes 5 custom WAF rules, 1 rate-limiting rule, and Bot Fight Mode. Managed OWASP rulesets are paid ($20/mo) and not needed.
+
+**What this will NOT do, so nobody expects it to:** it cannot see attacks against Supabase. Anyone with the public key can hit `ruzsbwgwbneqyvbdmwdb.supabase.co` directly — the site never loads and none of our code runs. No static site can watch that; the defence there is RLS, which is already audited. Likewise SQL injection is not a live risk (PostgREST parameterises everything; nothing concatenates SQL), and XSS is already handled by the sanitiser plus the CSP. A homemade detector catches noisy scanners and genuine client-side breakage — not a competent attacker.
+
 ## Newly found 2026-08-19 (were not tracked anywhere)
 - **There is no About page.** The footer's ABOUT link is `href="#"`. The site has exactly seven pages: `index`, `article`, `category`, `login`, `admin`, `editor`, `404`. Either an About page gets written or the link goes.
 - **"Request a contributor account →"** on `login.html` is a dead link, and no contributor-application flow exists or is planned. It reads like a promise the site can't keep.

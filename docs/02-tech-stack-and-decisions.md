@@ -30,3 +30,13 @@
 - **No approval workflow (v1):** sign in → post → it's live. Just Draft and Published — nothing in between.
 - **No comments (v1):** deliberately left out. The schema is built so comments can be added later without touching existing data.
 - **Git workflow:** since Claude Code runs in the cloud, not locally, review its diff after every change (it reports this itself, and it's checkable on GitHub too) before trusting a change is scoped correctly. Ask for one small, scoped change at a time rather than broad open-ended requests — this matters even more without a local step-by-step view.
+
+## Error tracking: build our own, not Sentry (decided 2026-08-19)
+Fero asked whether TTT needs Sentry, GlitchTip, or something homemade. **Decision: homemade.** Reasoning, so nobody re-opens this without new information:
+
+- **Sentry's main selling point doesn't apply.** Most of its value is mapping minified stack traces back to source. TTT has no build step — the JavaScript ships exactly as written — so a raw browser stack trace is already readable. That's paying complexity for a solved problem.
+- **It would widen the CSP we just narrowed.** Sentry needs its loader script and its ingest domain added to `script-src` and `connect-src`. Reopening those to catch a handful of errors a month is a bad trade against the hardening pass.
+- **The pieces already exist.** Two Cloudflare Pages Functions, the environment-variable pattern for secrets, and Telegram as the wanted destination — which through Sentry would be an extra integration hop.
+- **GlitchTip is the worst option here**, not the free one: same feature set as Sentry, but self-hosting means renting a server, so it costs more than either alternative.
+
+**Revisit if** TTT adds a build step or a framework (source maps make Sentry genuinely useful), or grows past a handful of contributors (its dashboard, alert routing and issue grouping start to earn their keep). Until then, homemade wins on every axis that matters to this project.
