@@ -147,17 +147,10 @@
       footer.classList.add("site-footer");
       footer.innerHTML = footerHTML();
 
-      // newsletter confirm if present on the page
-      var form = document.querySelector(".nl-form");
-      if (form) {
-        form.addEventListener("submit", function (e) {
-          e.preventDefault();
-          var btn = form.querySelector("button");
-          if (btn) btn.textContent = "YOU\u2019RE IN \u2605";
-          var mail = form.querySelector("input");
-          if (mail) mail.value = "";
-        });
-      }
+      /* The newsletter form is wired by tttPosts.wireNewsletter on the
+       * pages that carry one — it needs a Supabase client, which this
+       * file deliberately doesn't load. The mockup used to fake a
+       * "YOU'RE IN" confirmation here without storing anything. */
     }
   }
 

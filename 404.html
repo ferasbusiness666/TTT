@@ -48,5 +48,18 @@
   <footer id="site-footer"></footer>
 
   <script src="assets/ttt.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/ttt-auth.js"></script>
+  <script src="assets/ttt-posts.js"></script>
+  <script>
+    // The 404 page carries the same newsletter strip as the rest of the
+    // site, so it gets the same real wiring rather than a dead form.
+    (function () {
+      var c = window.tttAuth && window.tttAuth.client;
+      if (c && window.tttPosts) {
+        window.tttPosts.wireNewsletter(c, document.querySelector("form.nl-form"));
+      }
+    })();
+  </script>
 </body>
 </html>

@@ -196,9 +196,66 @@
       .catch(function () { return false; });
   }
 
+  /* ---- newsletter ---------------------------------------------------- *
+   * The one place a reader writes to the database. RLS lets anon INSERT
+   * into `subscribers` and nothing else, and the email-format CHECK from
+   * migration `validate_subscriber_emails` rejects junk server-side, so
+   * the client's job is only to send it and report back honestly. The
+   * status line is created here rather than in the markup because it has
+   * nothing to say until someone submits. */
+  function wireNewsletter(client, form) {
+    if (!form || form.getAttribute("data-wired")) return;
+    form.setAttribute("data-wired", "1");
+    form.removeAttribute("onsubmit");   // the mockup blocked submit outright
+
+    var input = form.querySelector('input[type="email"]');
+    var btn   = form.querySelector('button[type="submit"]');
+    var label = btn ? btn.textContent : "SUBSCRIBE";
+    var note  = document.createElement("p");
+    note.className = "nl-note";
+    note.setAttribute("role", "status");
+    note.style.display = "none";
+    form.parentNode.insertBefore(note, form.nextSibling);
+
+    function say(msg) {
+      note.textContent = msg;
+      note.style.display = "";
+    }
+    function reset() {
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+    }
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+      note.style.display = "none";
+
+      var email = (input && input.value || "").trim();
+      if (!email) return;
+
+      if (btn) { btn.disabled = true; btn.textContent = "…"; }
+
+      client.from("subscribers").insert({ email: email }).then(function (r) {
+        reset();
+        if (!r || !r.error) {
+          form.reset();
+          say("You're on the list. Watch your inbox.");
+          return;
+        }
+        // 23505 unique_violation, 23514 check_violation (the format CHECK)
+        if (r.error.code === "23505")      say("You're already on the list.");
+        else if (r.error.code === "23514") say("That doesn't look like an email address.");
+        else                               say("Something went wrong. Please try again.");
+      }).catch(function () {
+        reset();
+        say("Something went wrong. Please try again.");
+      });
+    });
+  }
+
   window.tttPosts = {
     esc: esc, link: link, cdn: cdn, author: author, label: label, date: date, media: media,
     bentoCard: bentoCard, vcard: vcard, acard: acard, gitem: gitem, archiveCard: archiveCard,
-    fetchPosts: fetchPosts, fillSection: fillSection, hasPublished: hasPublished
+    fetchPosts: fetchPosts, fillSection: fillSection, hasPublished: hasPublished,
+    wireNewsletter: wireNewsletter
   };
 })();

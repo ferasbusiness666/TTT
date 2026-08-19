@@ -248,6 +248,14 @@
      * a list rather than a fixed grid, so unlike the homepage it doesn't
      * need enough posts to "fill" a layout. */
     (function () {
+      // Newsletter — the subscribe box writes to `subscribers`.
+      var c = window.tttAuth && window.tttAuth.client;
+      if (c && window.tttPosts) {
+        window.tttPosts.wireNewsletter(c, document.querySelector("form.nl-form"));
+      }
+    })();
+
+    (function () {
       var client = window.tttAuth && window.tttAuth.client;
       var P = window.tttPosts;
       if (!client || !P) return;

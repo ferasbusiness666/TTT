@@ -601,6 +601,11 @@ button { font: inherit; }
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .nl-form button:hover { transform: translateY(-2px); box-shadow: 4px 4px 0 var(--ttt-dark); }
+.nl-note {
+  font-family: var(--font-sans); font-size: 14px; line-height: 1.5;
+  margin: 12px auto 0; max-width: 520px; text-align: center;
+  color: var(--ttt-paper); opacity: 0.95;
+}
 
 /* =====================================================================
    FOOTER — dark
@@ -1106,7 +1111,7 @@ button { font: inherit; }
     <div class="nl-inner">
       <h2>STAY IN THE LOOP</h2>
       <p>New stories, videos, and gallery drops — straight to your inbox. No spam, just the good stuff.</p>
-      <form class="nl-form" onsubmit="return false;">
+      <form class="nl-form">
         <input type="email" placeholder="your@email.com" aria-label="Email address" required />
         <button type="submit">SUBSCRIBE</button>
       </form>
@@ -1197,12 +1202,6 @@ button { font: inherit; }
       });
     })();
 
-    // Newsletter — friendly confirm (prototype)
-    document.querySelector('.nl-form').addEventListener('submit', function () {
-      var btn = this.querySelector('button');
-      btn.textContent = 'YOU’RE IN ★';
-      this.querySelector('input').value = '';
-    });
   </script>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1277,6 +1276,9 @@ button { font: inherit; }
           return P.acard(p, i === 0);
         });
       });
+
+      // Newsletter — the subscribe box writes to `subscribers`.
+      P.wireNewsletter(client, document.querySelector("form.nl-form"));
 
       /* Art & Photography gallery — the wall shows the cover image of any
        * post that has one, not just posts typed "artwork", and each picture
