@@ -8,18 +8,18 @@ and the history. **M** = Claude can build it now, **F** = only Fero can do it,
 
 | # | Who | Item |
 |---|-----|------|
-| 1  | M | **Library/gallery shows every post's cover**, each image linking to its own post (cover images only — decided). |
-| 2  | M | **Credit line for Fero** below the founders — designed and built the site, contact `feroomon10400@gmail.com`. |
+| 1  | ✅ | **Library/gallery shows every post's cover** — done. Draws the newest posts of any type that have a cover, each linking to its own post. |
+| 2  | ✅ | **Credit line for Fero** — done. A single quiet line under the founder cards, not a fifth card. |
 | 3  | ? | **Founders section content** — currently four invented people. Should be Liya Tadele and Ije Ezedani. Needs their real roles and bios from Fero; nothing here gets invented. |
-| 4  | M | **Wire the newsletter subscribe box** to the `subscribers` table. The form is `onsubmit="return false;"` — typing an email does nothing today. |
-| 5  | M | **"MORE FROM TTT"** on `article.html` → real related posts (same three hardcoded cards appear under every article). |
+| 4  | ✅ | **Newsletter subscribe box** — done on all three pages that carry it (`index`, `category`, `404`). Two separate fakes that claimed "YOU'RE IN" without storing anything are gone. |
+| 5  | ✅ | **"MORE FROM TTT"** — done. Newest posts minus the one being read, so an article no longer links to itself. |
 | 6  | ? | **The ABOUT link has no page.** The footer links to `href="#"` and no About page exists — only seven pages do. Build one, or remove the link. |
-| 7  | M+F | **Password-reset page**, so "Forgot password?" has somewhere to land. Fero adds the redirect URL in Supabase → Authentication → URL Configuration. |
-| 8  | M | **"Remember me" made real** — unchecked means the session ends when the browser closes. Code only, looks identical. |
-| 9  | ? | **"Request a contributor account"** on the login page points at `href="#"` and no such flow is planned. Remove it, or point it at an email. |
-| 10 | M | **"LOAD MORE STORIES"** on `category.html` does nothing. Wire it or remove it. |
-| 11 | F | **Discord invite URL** — the footer button has no destination. Instagram, TikTok and YouTube are already wired to `@tadeleteentalks`. |
-| 12 | ? | **Invented numbers still showing publicly** — `VOL. 03 · NOV 2025` in the masthead and footer, `40+ teen contributors` on the login screen, `VOL. 03 — The Suburbia Issue` on the category page. Replace with true values or remove. |
+| 7  | ✅ | **"Forgot password?"** — done, and no reset page needed: Fero's call was to point it at the administrator, so it is now a mailto. The Supabase redirect-URL step is no longer required. |
+| 8  | ✅ | **"Remember me"** — done. Unticked keeps the session in sessionStorage so it dies with the browser. **One visual difference to confirm:** the box now renders ticked by default, which preserves today's behaviour; say if it should start unticked. |
+| 9  | ✅ | **"Request a contributor account"** — done, pointed at the same contact address rather than left dead. Removing it outright is still an option. |
+| 10 | ✅ | **"LOAD MORE STORIES"** — done. Real pagination, 24 a page; the button hides when the archive runs out. Also removed a 60-row cap that would have silently hidden posts past sixty. |
+| 11 | ⚠️ | **Discord** — wired to `https://discord.gg/G8fC4aJtM`. **The invite expires 2026-09-18**, so the button breaks in a month unless it is reissued with no expiry. Also fixed: the homepage's own footer copy still had Instagram/TikTok/YouTube dead, which the earlier social fix missed. |
+| 12 | ⏸ | **Invented numbers** — `VOL. 03 · NOV 2025` (masthead, footer), `40+ teen contributors` (login), `VOL. 03 — The Suburbia Issue` (category). **Parked at Fero's request** until the real contributor count is known. |
 | 13 | F | **Publish real posts** — enough to fill the homepage sections (trending 7, rail 5, articles 6, gallery 8). |
 | 14 | M | **Retire the demo cards** from `index.html` once #13 is done, so every section reads from the database. Order matters: posts first, then removal, or the homepage goes blank in between. |
 | 15 | M | **Look pass on real posts** — check they actually read well once published (raised alongside the trending-order fix). |
