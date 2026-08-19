@@ -264,22 +264,21 @@
       var q   = new URLSearchParams(window.location.search).get("q");
       var cat = (new URLSearchParams(window.location.search).get("cat") || "trending").toLowerCase();
 
-      function paint(posts) {
-        var grid = document.getElementById("grid");
-        grid.innerHTML = posts.map(P.archiveCard).join("");
-        document.getElementById("count").innerHTML =
-          '<span class="star">★</span> ' + posts.length + (posts.length === 1 ? " STORY" : " STORIES");
-        document.getElementById("empty").style.display = posts.length ? "none" : "";
-        // Nothing left to "load more" from — the query already returned all.
-        var more = document.querySelector(".archive-more");
-        if (more) more.style.display = "none";
-      }
+      /* Paged, because LOAD MORE STORIES was a no-op button and the query
+       * behind it capped out at 60 rows — past that, stories would have
+       * quietly stopped existing. One page per click; the button hides
+       * itself when the archive runs out, so it never sits there promising
+       * something it can't deliver. */
+      var PAGE     = 24;
+      var loaded   = 0;
+      var total    = null;
+      var moreWrap = document.querySelector(".archive-more");
+      var moreBtn  = moreWrap && moreWrap.querySelector("button");
 
-      P.hasPublished(client).then(function (live) {
-        if (!live) return;   // pre-launch: keep the demo archive as-is
-
+      function query() {
         var base = client.from("posts")
-          .select("id, title, slug, excerpt, cover_image_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name)")
+          .select("id, title, slug, excerpt, cover_image_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name)",
+                  { count: "exact" })
           .eq("status", "published");
 
         if (q) {
@@ -290,8 +289,43 @@
           base = base.eq("post_type", CAT_TO_TYPE[cat]);
         }   // 'trending' (or anything unknown) lists everything
 
-        base.order("published_at", { ascending: false, nullsFirst: false }).limit(60)
-          .then(function (r) { if (!r.error) paint(r.data || []); });
+        return base.order("published_at", { ascending: false, nullsFirst: false });
+      }
+
+      function paint(posts, append) {
+        var grid = document.getElementById("grid");
+        var html = posts.map(P.archiveCard).join("");
+        if (append) grid.insertAdjacentHTML("beforeend", html);
+        else grid.innerHTML = html;
+
+        loaded += posts.length;
+        // The count is the size of the archive, not of what's on screen.
+        var shown = (total === null ? loaded : total);
+        document.getElementById("count").innerHTML =
+          '<span class="star">★</span> ' + shown + (shown === 1 ? " STORY" : " STORIES");
+        document.getElementById("empty").style.display = loaded ? "none" : "";
+
+        if (moreWrap) {
+          var exhausted = (total !== null) ? loaded >= total : posts.length < PAGE;
+          moreWrap.style.display = exhausted ? "none" : "";
+        }
+      }
+
+      function load(append) {
+        if (moreBtn) { moreBtn.disabled = true; moreBtn.textContent = "LOADING…"; }
+        return query().range(loaded, loaded + PAGE - 1).then(function (r) {
+          if (moreBtn) { moreBtn.disabled = false; moreBtn.textContent = "LOAD MORE STORIES"; }
+          if (r.error) return;
+          if (typeof r.count === "number") total = r.count;
+          paint(r.data || [], append);
+        });
+      }
+
+      if (moreBtn) moreBtn.addEventListener("click", function () { load(true); });
+
+      P.hasPublished(client).then(function (live) {
+        if (!live) return;   // pre-launch: keep the demo archive as-is
+        load(false);
       });
     })();
   </script>
