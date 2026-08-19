@@ -53,7 +53,7 @@
         '<a class="login" href="login.html">LOGIN' +
           '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"></path></svg>' +
         '</a>' +
-        '<a class="logo-badge" href="index.html" title="Tadele Teen Talks"><span>TADELE<br />TEEN<br />TALKS</span></a>' +
+        '<a class="logo-badge" href="index.html" title="Tadele Teen Talks"><img src="images/logo-badge.png" alt="" width="44" height="44" /></a>' +
       '</div>' +
     '</div>' +
     '<nav class="nav" aria-label="Sections">' + tabs + '</nav>';

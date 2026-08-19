@@ -205,9 +205,13 @@ button { font: inherit; }
   transition: transform 0.15s ease, max-width 0.32s ease, opacity 0.2s ease;
 }
 .logo-badge:hover { transform: rotate(-6deg); }
-.logo-badge span {
-  font-family: var(--font-serif); font-weight: 800; font-size: 8px;
-  line-height: 0.95; color: var(--ttt-dark); letter-spacing: -0.02em;
+/* The real logo, cropped to a circle (images/logo-badge.png). The button
+   itself is unchanged — same 44px circle, same border, same hover tilt;
+   only what sits inside it changed, from set type to the actual mark. */
+.logo-badge { overflow: hidden; }
+.logo-badge img {
+  width: 100%; height: 100%; display: block;
+  object-fit: cover; border-radius: 50%;
 }
 
 /* nav tabs */
@@ -517,8 +521,10 @@ button { font: inherit; }
   font-size: clamp(15px, 1.6vw, 19px); color: var(--ttt-muted); margin-top: 6px;
 }
 .founders {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
-  padding: 28px var(--pad-page) 0; max-width: var(--maxw); margin: 0 auto;
+  /* Two founders, not four — the narrower max-width keeps each card about
+     the width it always was instead of stretching it across half the page. */
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px;
+  padding: 28px var(--pad-page) 0; max-width: 720px; margin: 0 auto;
 }
 .fcard {
   border: var(--line); border-radius: var(--radius-card);
@@ -830,7 +836,7 @@ button { font: inherit; }
           </svg>
         </button>
         <div class="logo-badge" title="Tadele Teen Talks">
-          <span>TADELE<br />TEEN<br />TALKS</span>
+          <img src="images/logo-badge.png" alt="" width="44" height="44" />
         </div>
       </div>
     </div>
@@ -1074,30 +1080,18 @@ button { font: inherit; }
     <h2>MEET THE FOUNDERS</h2>
     <p>The teens behind the talk.</p>
   </div>
+  <!-- The two real co-CEOs (docs/01-project-overview.md). No bios here:
+       nothing gets written about a real person that they didn't say. -->
   <section class="founders" id="founders">
     <article class="fcard">
+      <div class="avatar c-mint">IE</div>
+      <div class="name">Ije Ezedani</div>
+      <div class="role">Co-CEO</div>
+    </article>
+    <article class="fcard">
       <div class="avatar c-pink">LT</div>
-      <div class="name">Liya G. Tadele</div>
-      <div class="role">Editor-in-Chief</div>
-      <p class="bio">Started TTT from a group chat. Writes about identity, suburbia, and everything in between.</p>
-    </article>
-    <article class="fcard">
-      <div class="avatar c-mint">PA</div>
-      <div class="name">Penelope Acosta</div>
-      <div class="role">Creative Director</div>
-      <p class="bio">Runs the gallery wall and the vibe. Believes a good layout is a form of activism.</p>
-    </article>
-    <article class="fcard">
-      <div class="avatar c-lavender">MW</div>
-      <div class="name">Meziah Woodard</div>
-      <div class="role">Photo &amp; Video Lead</div>
-      <p class="bio">Always has a camera. Turns hallway moments into stories people actually stop to read.</p>
-    </article>
-    <article class="fcard">
-      <div class="avatar c-peach">AS</div>
-      <div class="name">Allie Schrock</div>
-      <div class="role">Managing Editor</div>
-      <p class="bio">Keeps the deadlines and the receipts. Edits with a red pen and a lot of love.</p>
+      <div class="name">Liya Tadele</div>
+      <div class="role">Co-CEO</div>
     </article>
   </section>
 

@@ -10,7 +10,7 @@ and the history. **M** = Claude can build it now, **F** = only Fero can do it,
 |---|-----|------|
 | 1  | ✅ | **Library/gallery shows every post's cover** — done. Draws the newest posts of any type that have a cover, each linking to its own post. |
 | 2  | ✅ | **Credit line for Fero** — done. A single quiet line under the founder cards, not a fifth card. |
-| 3  | ? | **Founders section content** — currently four invented people. Should be Liya Tadele and Ije Ezedani. Needs their real roles and bios from Fero; nothing here gets invented. |
+| 3  | ✅ | **Founders section** — done. Now the two real co-CEOs, Ije Ezedani and Liya Tadele, per `01-project-overview.md`. **No bios**: three invented people and four invented bios were removed and nothing was written to replace them. Send real bios and they go straight in. |
 | 4  | ✅ | **Newsletter subscribe box** — done on all three pages that carry it (`index`, `category`, `404`). Two separate fakes that claimed "YOU'RE IN" without storing anything are gone. |
 | 5  | ✅ | **"MORE FROM TTT"** — done. Newest posts minus the one being read, so an article no longer links to itself. |
 | 6  | ? | **The ABOUT link has no page.** The footer links to `href="#"` and no About page exists — only seven pages do. Build one, or remove the link. |
@@ -57,7 +57,7 @@ Nothing security-related is open. Everything above is features, content or polis
 - [ ] Create the real staff accounts in Supabase
 - [ ] Wire up the subscribe box to the `subscribers` table
 - [x] Show the **real** signed-in user's name (admin sidebar + avatar initials, editor byline) instead of the hardcoded `Liya G. Tadele` placeholder — reads `full_name` from `profiles` via `tttAuth.currentProfile()`. (Value falls back to email until a display name is set — see `05-known-issues.md`.)
-- [ ] Confirm the Founders **section content** shows exactly Liya Tadele and Ije Ezedani (the nav link to it was removed, but the section's actual content was never confirmed fixed — double check this)
+- [x] Confirm the Founders **section content** shows exactly Liya Tadele and Ije Ezedani — done 2026-08-19. It had been showing four people, three of whom don't exist.
 - [x] Add the real favicon — generated from `images/preview.png` (the circular TTT logo) into `favicon.ico` + 32px/180px/512px PNGs, linked from **all six pages**. Also produced `images/og-cover.png` (1200×630, logo on the brand cream) and wired `og:`/`twitter:` share tags + meta descriptions on the three public pages.
 
 ## Security hardening (from the stress test — see `09-security-stress-test.md`)
