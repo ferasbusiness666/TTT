@@ -549,6 +549,17 @@ button { font: inherit; }
   color: var(--ttt-muted); margin-top: 10px; text-wrap: pretty;
 }
 
+/* Site credit — deliberately not a founder card. Sits under the grid as a
+   quiet single line so it reads as a colophon, not a fifth member. */
+.site-credit {
+  max-width: var(--maxw); margin: 0 auto; padding: 22px var(--pad-page) 0;
+  text-align: center; font-family: var(--font-sans); font-size: 13px;
+  line-height: 1.6; color: var(--ttt-muted);
+}
+.site-credit strong { font-weight: 600; color: var(--ttt-dark); }
+.site-credit a { color: var(--ttt-red); text-decoration: none; border-bottom: 1px solid currentColor; }
+.site-credit a:hover { color: var(--ttt-red-deep); }
+
 /* =====================================================================
    SECTION 5 — NEWSLETTER STRIP  (full-width red banner)
    ===================================================================== */
@@ -1084,6 +1095,11 @@ button { font: inherit; }
       <p class="bio">Keeps the deadlines and the receipts. Edits with a red pen and a lot of love.</p>
     </article>
   </section>
+
+  <p class="site-credit">
+    Site designed and built by <strong>Feras Hania</strong> — for support, bug reports or anything else,
+    <a href="mailto:feroomon10400@gmail.com?subject=Tadele%20Teen%20Talks">feroomon10400@gmail.com</a>
+  </p>
 
   <!-- =================== SECTION 5 · NEWSLETTER =================== -->
   <section class="newsletter">
