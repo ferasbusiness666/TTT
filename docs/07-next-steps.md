@@ -43,11 +43,13 @@ Worth doing in the same sitting:
 ## Done — visitor analytics (Cloudflare Web Analytics, 2026-08-19)
 Free, unlimited, cookieless, no consent banner needed. Reports page views, unique visitors, referrers, countries, top pages and Core Web Vitals.
 
-**Automatic injection is not available to TTT, and this is worth remembering rather than re-asking.** Cloudflare's one-click setup only works for a hostname *proxied through Cloudflare* — a domain you own, added as a zone, orange cloud on. `tadeleteentalk.pages.dev` is Cloudflare's own domain, not a zone, so the option genuinely doesn't exist for it. (Same root cause as Bot Fight Mode being unfindable. Both unlock together if TTT ever gets a custom domain.) The manual beacon is the correct path here, not a downgrade.
+**Automatic injection IS active, and no snippet belongs in the repo.** Cloudflare injects the beacon at the edge on every page of the site — verified in the served HTML, including the staff pages, which contain no beacon in the source. The injected tag carries site token `bde6e2861a064d2980f1caddf6772d22`.
 
-**What was done:** the beacon `<script type="module">` with site token `7e1be1b0c3704050b90d401991dcef86` sits on the four **public** pages — `index`, `article`, `category`, `404`. The token is public by design; it appears in the page source of every site using Web Analytics. `_headers` already allows `static.cloudflareinsights.com` (`script-src`) and `cloudflareinsights.com` (`connect-src`) — manual-setup beacons report to `cloudflareinsights.com/cdn-cgi/rum`.
+**A wrong turn worth recording, because the reasoning sounded right.** Reading Cloudflare's docs on "sites proxied through Cloudflare", Claude concluded that automatic injection can't work for a `pages.dev` hostname (no zone, same reason Bot Fight Mode is unavailable) and added the manual snippet to the four public pages. That was wrong: **Cloudflare Pages has its own Web Analytics integration that injects for `*.pages.dev` regardless of zones.** The result was two beacons per page with two different tokens — and Cloudflare's own FAQ says only one snippet per page is used. The manual snippet has been removed. **Check what the server actually serves before reasoning from docs about what it must be doing.**
 
-**Deliberately NOT on `login`, `admin`, `editor`** — staff screens aren't worth measuring, and there's no reason to hand their URLs to a third party.
+**Likely why the dashboard looked empty before today:** the auto-injected beacon loads from `static.cloudflareinsights.com` and reports to `cloudflareinsights.com`. Neither was in our CSP until 2026-08-19, so the browser would have blocked it. Those entries are in `_headers` now and must stay — **removing them would silently switch analytics off again.**
+
+**Housekeeping for Fero:** the Web Analytics dashboard now has a second, unused site carrying token `7e1be1b0c3704050b90d401991dcef86`, created while setting this up manually. Delete it so there's one site and no confusion about which numbers are real.
 
 **Two things to expect, so neither looks like a bug:**
 - **Ad blockers block the beacon** — uBlock, Brave, DuckDuckGo and friends all do. If Fero browses with one, his own visits won't appear. Test in a clean browser before concluding it's broken.
