@@ -13,7 +13,7 @@ and the history. **M** = Claude can build it now, **F** = only Fero can do it,
 | 3  | ✅ | **Founders section** — done. Now the two real co-CEOs, Ije Ezedani and Liya Tadele, per `01-project-overview.md`. **No bios**: three invented people and four invented bios were removed and nothing was written to replace them. Send real bios and they go straight in. |
 | 4  | ✅ | **Newsletter subscribe box** — done on all three pages that carry it (`index`, `category`, `404`). Two separate fakes that claimed "YOU'RE IN" without storing anything are gone. |
 | 5  | ✅ | **"MORE FROM TTT"** — done. Newest posts minus the one being read, so an article no longer links to itself. |
-| 6  | ? | **The ABOUT link has no page.** The footer links to `href="#"` and no About page exists — only seven pages do. Build one, or remove the link. |
+| 6  | ⏸ | **ABOUT page — parked at Fero's request** until he supplies the copy. The footer link stays `href="#"` until then; it is the only dead link left on the site. |
 | 7  | ✅ | **"Forgot password?"** — done, and no reset page needed: Fero's call was to point it at the administrator, so it is now a mailto. The Supabase redirect-URL step is no longer required. |
 | 8  | ✅ | **"Remember me"** — done. Unticked keeps the session in sessionStorage so it dies with the browser. **One visual difference to confirm:** the box now renders ticked by default, which preserves today's behaviour; say if it should start unticked. |
 | 9  | ✅ | **"Request a contributor account"** — done, pointed at the same contact address rather than left dead. Removing it outright is still an option. |
@@ -30,6 +30,9 @@ and the history. **M** = Claude can build it now, **F** = only Fero can do it,
 
 Nothing security-related is open. Everything above is features, content or polish.
 
+## BLOCKER before indexing — sitemap.xml must be regenerated
+`sitemap.xml` is hand-written and lists only the static pages. **Do not submit it to Google until it lists the real published posts**, or Google gets a map that doesn't match the site — which is worse than submitting nothing. Decide then between a Pages Function that renders it from `posts`, or regenerating it by hand at launch. Small either way, but it has to happen *before* Search Console verification, not after.
+
 ## Just before launch — Google Search Console
 Fero wants Google crawling the site. Google verifies ownership with **one of** a `<meta name="google-site-verification" content="…">` tag in `<head>`, or an HTML file dropped at the site root. Fero will send whichever Google gives him and Claude puts it in the right place — the meta tag belongs in the `<head>` of `index.html` (and only there; Google checks the homepage).
 
@@ -37,13 +40,20 @@ Worth doing in the same sitting:
 - `sitemap.xml` is currently **static and hand-written**. Before submitting it, it should list the real published posts, or Google gets a sitemap that doesn't match the site. Generating it needs a decision — a Pages Function that renders it from `posts`, or regenerating it by hand at launch.
 - `robots.txt` already disallows `/admin`, `/editor`, `/login` and `/api/`, so that side is ready.
 
+## Visitor analytics — Cloudflare Web Analytics (CSP is ready, Fero flips the switch)
+Fero asked for what Netlify gives him: real visitor numbers. The Cloudflare equivalent is **Web Analytics** — free, unlimited, cookieless, and it needs no consent banner because it doesn't track people across sites. It reports page views, unique visitors, referrers, countries, top pages and Core Web Vitals.
+
+**The CSP has already been widened for it** (`static.cloudflareinsights.com` in `script-src`, `cloudflareinsights.com` in `connect-src`), done first deliberately: enabling the toggle without that would have loaded a beacon the CSP silently blocks, and the dashboard would stay empty — looking exactly like the "no traffic" symptom below, for a completely different reason.
+
+**Fero's step:** Cloudflare dashboard → **Workers & Pages → tadeleteentalk → Settings**, find **Web Analytics** and enable it (it may also appear under Analytics & Logs → Web Analytics → *Add a site*; the label moves between dashboard versions). Cloudflare injects the beacon at the edge — no code change needed on our side. Data appears within a few minutes of the next visit.
+
 ## Later — Cloudflare Observability shows no traffic (2026-08-19)
 Fero noticed the Observability tab reporting zero traffic even though he and the tests have been hitting the site. **This is expected, not a bug:** that tab reports on **Workers/Functions invocations**, and TTT is static files plus two `/api/*` Functions. Requests for `index.html`, the CSS, the images — the actual traffic — never invoke a Worker, so they are correctly absent. Only `/api/sign-upload` and `/api/delete-image` calls would ever appear there.
 
 For real visitor numbers the tool is **Cloudflare Web Analytics** (free, privacy-preserving, no cookies). One catch to handle when we do it: it injects a beacon from `static.cloudflareinsights.com`, so `_headers` needs that host added to `script-src` and `connect-src`. Small, but it must be done in the same change or the CSP silently blocks the beacon and the tab stays empty — which would look exactly like the current symptom.
 
-## Later — no rate limit on the newsletter form
-Flagged by both the re-test and Cloudflare's own scan. Anyone can bulk-insert valid-format addresses into `subscribers`; the CHECK constraint stops garbage but not volume. The fix is a **Cloudflare Turnstile** widget on the form (free, and it closes the CSV's "No Turnstile enabled" finding at the same time). Not urgent — it matters once TTT has an audience worth spamming.
+## Done — newsletter rate limiting (2026-08-19)
+Built in the database rather than as a Pages Function; see `04-database-schema.md`. 5 signups per visitor per hour, 200 site-wide, anon INSERT revoked so the `subscribe` RPC is the only way in. **Turnstile is still the upgrade** if a determined attacker with a proxy pool ever becomes a real problem — per-IP limiting doesn't stop that, the site-wide cap only bounds it.
 
 ## Later — error + attack reporting to Telegram (decided 2026-08-19, not started)
 Parked at Fero's request; the decision is made, the build is not. Rationale for building rather than buying is in `02-tech-stack-and-decisions.md`.

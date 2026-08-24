@@ -234,17 +234,20 @@
 
       if (btn) { btn.disabled = true; btn.textContent = "…"; }
 
-      client.from("subscribers").insert({ email: email }).then(function (r) {
+      /* Goes through the `subscribe` RPC, not a direct insert. The insert
+       * grant was revoked precisely because it had no volume limit -- the
+       * function is now the only way in, and it caps signups per visitor
+       * per hour (and site-wide) before it writes anything. It answers with
+       * a plain word rather than throwing, so each case gets a real reply. */
+      client.rpc("subscribe", { p_email: email }).then(function (r) {
         reset();
-        if (!r || !r.error) {
-          form.reset();
-          say("You're on the list. Watch your inbox.");
-          return;
-        }
-        // 23505 unique_violation, 23514 check_violation (the format CHECK)
-        if (r.error.code === "23505")      say("You're already on the list.");
-        else if (r.error.code === "23514") say("That doesn't look like an email address.");
-        else                               say("Something went wrong. Please try again.");
+        var result = r && r.data;
+        if (r && r.error)                    say("Something went wrong. Please try again.");
+        else if (result === "ok")            { form.reset(); say("You're on the list. Watch your inbox."); }
+        else if (result === "duplicate")     say("You're already on the list.");
+        else if (result === "invalid")       say("That doesn't look like an email address.");
+        else if (result === "rate_limited")  say("Too many signups from here just now. Try again in a bit.");
+        else                                 say("Something went wrong. Please try again.");
       }).catch(function () {
         reset();
         say("Something went wrong. Please try again.");

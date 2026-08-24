@@ -267,3 +267,30 @@ create policy "profiles are readable when signed in"
 - **Comments, whenever ready**, would just be a new, fully independent table referencing `posts.id` — zero risk to anything above.
 - **Data API access:** Supabase sometimes needs `anon`/`authenticated` roles explicitly granted on a *new* table beyond RLS. If a table seems invisible from the app right after creating it, check Table Editor → API settings.
 - **When actually running this:** use `supabase migration new create_initial_schema` and put this SQL in the generated file, rather than pasting it straight into the SQL editor — keeps a clean migration history.
+
+## Newsletter rate limiting (migration `rate_limit_newsletter_signups`, 2026-08-19)
+The subscribe box had format validation but no volume limit — anyone could bulk-insert well-formed addresses indefinitely. Both the security re-test and Cloudflare's own scan flagged it.
+
+**The key discovery:** PostgREST exposes the HTTP request headers to SQL via `current_setting('request.headers')`, and Supabase sits behind Cloudflare, so **`cf-connecting-ip` is readable from inside a function**. Verified with a throwaway probe before building anything. That means the limit lives entirely in the database — no Pages Function, no new Cloudflare environment variable, and **no `service_role` key anywhere**, which was the alternative design and a much bigger key to be holding.
+
+```sql
+-- attempt log; NOT granted to anon, RLS on with no policies -> unreachable
+-- through the Data API. Stores md5(ip || salt), never the address itself.
+create table public.subscribe_attempts (
+  ip_hash text not null,
+  at      timestamptz not null default now()
+);
+
+-- security definer, search_path pinned, execute revoked from PUBLIC
+create function public.subscribe(p_email text) returns text ...
+--   'ok' | 'duplicate' | 'invalid' | 'rate_limited'
+--   5 per IP per hour, 200 site-wide per hour
+--   deletes attempts older than a day on each call
+
+revoke insert on public.subscribers from anon;   -- RPC is the only way in
+drop policy "anyone can subscribe" on public.subscribers;
+```
+
+**Why the IP is hashed:** this is a site for teenagers; there is no reason to keep a log of their addresses. The hash is salted so the table can't be reversed into a visitor list even by someone with database access.
+
+**Honest limit:** per-IP limiting is defence against casual abuse, not a determined attacker — anyone with a proxy pool presents as a different visitor each request. This was demonstrated accidentally: the first test run showed 7 requests sailing through the limit because the test sandbox egresses through rotating proxies, appearing as 5 separate visitors. **The site-wide cap of 200/hour is what actually bounds the damage.** Cloudflare Turnstile on the form remains the upgrade if it ever matters.
