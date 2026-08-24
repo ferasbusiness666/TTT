@@ -247,6 +247,18 @@
      * here yet" state for a category that genuinely has none. An archive is
      * a list rather than a fixed grid, so unlike the homepage it doesn't
      * need enough posts to "fill" a layout. */
+    /* Canonical points at the category itself, deliberately dropping any
+     * ?q= search term: a results page isn't worth indexing on its own, and
+     * without this every search anyone happened to link to would look like
+     * a separate near-duplicate of the archive. */
+    (function () {
+      var cat  = (new URLSearchParams(window.location.search).get("cat") || "").toLowerCase();
+      var link = document.createElement("link");
+      link.rel  = "canonical";
+      link.href = "https://tadeleteentalk.pages.dev/category.html" + (cat ? "?cat=" + encodeURIComponent(cat) : "");
+      document.head.appendChild(link);
+    })();
+
     (function () {
       // Newsletter — the subscribe box writes to `subscribers`.
       var c = window.tttAuth && window.tttAuth.client;

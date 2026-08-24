@@ -30,15 +30,20 @@ and the history. **M** = Claude can build it now, **F** = only Fero can do it,
 
 Nothing security-related is open. Everything above is features, content or polish.
 
-## Cloudflare 2FA — blocked by SSO sign-in, and the way round it
-Fero couldn't enable 2FA: Cloudflare asks for a password, and there isn't one. He signs in with **Google SSO**, so the account was created without a password; the "change password" form then asks for an old password that never existed. This is expected behaviour, not a bug, and Cloudflare's own SSO documentation states the fix: *"If a user does not have a password, they can use the forgot password method on the login page to create one."*
+## Cloudflare 2FA — Google 2FA done, Cloudflare's own declined for now
+Fero couldn't enable Cloudflare 2FA: he signs in with **Google SSO**, so the account has no password, and the change-password form asks for an old one that never existed. Cloudflare's SSO docs give the way round — *"If a user does not have a password, they can use the forgot password method on the login page to create one"* — then Profile → Authentication → Two-Factor Authentication → Set up.
 
-**Order of operations, most valuable first:**
-1. **Turn on 2FA for the Google account** (`feroomon10400@gmail.com`). While Cloudflare sign-in goes through Google, that Google account *is* the key to Cloudflare — and to `CLOUDINARY_API_SECRET` and the deploy pipeline with it. This is the bigger win and takes two minutes.
-2. **Create a Cloudflare password:** log out, then use **Forgot password** on the Cloudflare login page. It emails a link that sets a password without asking for an old one. Signing in with Google keeps working afterwards.
-3. **Then enable Cloudflare 2FA:** Profile (top right) → **Authentication** → Two-Factor Authentication → **Set up**. Cloudflare supports an authenticator app (TOTP), a hardware key, or email as the second factor.
+**Where it landed (2026-08-19): Fero enabled 2FA on the Google account and has declined Cloudflare's own for now.** That is a reasonable stopping point, not an outstanding task, and it should not be raised again unasked. While sign-in goes through Google, that Google account *is* the key to Cloudflare — so the factor that actually guards the login path he uses is in place. Cloudflare's own 2FA would add a second factor for someone who had already got into the Google account; the steps above are recorded for whenever he wants it.
 
-Step 1 alone closes most of the risk. Steps 2–3 add a second factor even for someone who has already got into the Google account.
+## Done — indexing readiness (2026-08-19)
+Everything that could be prepared for Google *before* there are posts to index:
+- **Per-post metadata on `article.html`.** Every article was serving the site-level title and description, so all of them looked identical to search engines and link previews. Title, `description`, `og:*`, `twitter:*` and canonical are now built from the real post.
+- **`NewsArticle` structured data** per post (headline, author, publisher, datePublished, image), and **`Organization`** structured data on the homepage — both were asked for in `08-seo and technical checklist.md` and neither existed.
+- **Canonical URLs** on home, article and category. The category canonical deliberately **drops any `?q=` search term**, so a linked search can't be indexed as a near-duplicate of the archive.
+- **`noindex` on the "Story not found" state.** A missing slug still returns HTTP 200 — it's a static host, the slug is only known once JS runs — so Google would otherwise have indexed "Story not found" as a real page.
+- **`llms.txt`** added, per the checklist. Low expectations by design: it's an unofficial convention with no confirmed uptake.
+
+**One honest limit, worth deciding on later:** these tags are set by JavaScript. Google renders JS and picks them up, but most social scrapers (Discord, Facebook, X) do not — so link previews will still show the static site-level tags from the HTML head. The proper fix is rendering them server-side in a Pages Function for `/article`. Worth doing only if link previews turn out to matter; better decided once there are real posts to test against.
 
 ## BLOCKER before indexing — sitemap.xml must be regenerated
 `sitemap.xml` is hand-written and lists only the static pages. **Do not submit it to Google until it lists the real published posts**, or Google gets a map that doesn't match the site — which is worse than submitting nothing.

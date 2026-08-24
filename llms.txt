@@ -1,0 +1,19 @@
+# Tadele Teen Talks
+
+> A teen-run news and media platform sharing unfiltered stories, ideas, and
+> opinions from young voices, ages 13-21. Run by two co-CEOs, Ije Ezedani and
+> Liya Tadele, with a team of teen contributors across writing, video, art and
+> social media.
+
+## Pages
+
+- [Home](https://tadeleteentalk.pages.dev/): Latest articles, videos, artwork and photo essays
+- [Articles](https://tadeleteentalk.pages.dev/category.html?cat=articles): Written stories and opinion pieces
+- [Videos](https://tadeleteentalk.pages.dev/category.html?cat=videos): Video stories and interviews
+- [Artwork](https://tadeleteentalk.pages.dev/category.html?cat=artwork): Photography and illustration
+- [Magazines](https://tadeleteentalk.pages.dev/category.html?cat=magazines): Collected issues
+
+## Notes
+
+- Individual stories live at /article.html?post=<slug>
+- /admin, /editor and /login are staff-only and are excluded in robots.txt

@@ -256,6 +256,14 @@
             var el = document.querySelector(sel);
             if (el) el.style.display = "none";
           });
+        /* A missing story still returns HTTP 200 (it's a static host, the
+         * slug is only known once JS runs), so without this Google would
+         * index "Story not found" as a real page. Tell it not to. */
+        var no = document.createElement("meta");
+        no.name = "robots";
+        no.content = "noindex, follow";
+        document.head.appendChild(no);
+
         // the "MORE FROM TTT" strip and its label are still useful — leave them
       }
 
@@ -365,6 +373,80 @@
           // sample's versions rather than show another post's copy.
           var tags = document.querySelector(".article-tags");
           if (tags) tags.style.display = "none";
+
+          /* Per-post metadata. Every article was advertising the site-level
+           * title and description, so search results and link previews would
+           * have shown the same blurb for every story. Built from the real
+           * post instead: canonical, description, og:*, and NewsArticle
+           * structured data.
+           *
+           * Worth knowing about the limits of doing this in JS: Google
+           * renders JavaScript, so it picks these up. Most social scrapers
+           * (Discord, Facebook, X) do NOT run JS, so link previews will
+           * still fall back to the static tags in the HTML head. Fixing that
+           * properly means rendering the tags server-side in a Pages
+           * Function — noted in 07-next-steps, worth deciding once there are
+           * real posts to test against. */
+          (function () {
+            var url = "https://tadeleteentalk.pages.dev/article.html?post=" +
+                      encodeURIComponent(slug);
+
+            function meta(sel, attr, key, value) {
+              if (!value) return;
+              var el = document.head.querySelector(sel + '[' + attr + '="' + key + '"]');
+              if (!el) {
+                el = document.createElement(sel);
+                el.setAttribute(attr, key);
+                document.head.appendChild(el);
+              }
+              el.setAttribute("content", value);
+            }
+
+            var link = document.head.querySelector('link[rel="canonical"]');
+            if (!link) {
+              link = document.createElement("link");
+              link.rel = "canonical";
+              document.head.appendChild(link);
+            }
+            link.href = url;
+
+            var img = p.cover_image_url || "https://tadeleteentalk.pages.dev/images/og-cover.png";
+
+            meta("meta", "name",     "description",     p.excerpt || "");
+            meta("meta", "property", "og:title",        p.title);
+            meta("meta", "property", "og:description",  p.excerpt || "");
+            meta("meta", "property", "og:image",        img);
+            meta("meta", "property", "og:url",          url);
+            meta("meta", "property", "og:type",         "article");
+            meta("meta", "name",     "twitter:title",   p.title);
+            meta("meta", "name",     "twitter:description", p.excerpt || "");
+
+            var published = p.published_at || p.created_at;
+            var ld = {
+              "@context": "https://schema.org",
+              "@type": "NewsArticle",
+              "headline": p.title,
+              "mainEntityOfPage": { "@type": "WebPage", "@id": url },
+              "author": { "@type": "Person", "name": author },
+              "publisher": {
+                "@type": "Organization",
+                "name": "Tadele Teen Talks",
+                "logo": {
+                  "@type": "ImageObject",
+                  "url": "https://tadeleteentalk.pages.dev/images/icon-512.png"
+                }
+              }
+            };
+            if (p.excerpt)   ld.description   = p.excerpt;
+            if (published)   ld.datePublished = new Date(published).toISOString();
+            if (p.cover_image_url) ld.image   = [p.cover_image_url];
+
+            var tag = document.createElement("script");
+            tag.type = "application/ld+json";
+            // textContent, never innerHTML — the post's own words go in here.
+            tag.textContent = JSON.stringify(ld);
+            document.head.appendChild(tag);
+          })();
 
           var box = document.querySelector(".author-box");
           if (box) {
