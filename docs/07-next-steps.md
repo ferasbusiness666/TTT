@@ -30,8 +30,20 @@ and the history. **M** = Claude can build it now, **F** = only Fero can do it,
 
 Nothing security-related is open. Everything above is features, content or polish.
 
+## Cloudflare 2FA — blocked by SSO sign-in, and the way round it
+Fero couldn't enable 2FA: Cloudflare asks for a password, and there isn't one. He signs in with **Google SSO**, so the account was created without a password; the "change password" form then asks for an old password that never existed. This is expected behaviour, not a bug, and Cloudflare's own SSO documentation states the fix: *"If a user does not have a password, they can use the forgot password method on the login page to create one."*
+
+**Order of operations, most valuable first:**
+1. **Turn on 2FA for the Google account** (`feroomon10400@gmail.com`). While Cloudflare sign-in goes through Google, that Google account *is* the key to Cloudflare — and to `CLOUDINARY_API_SECRET` and the deploy pipeline with it. This is the bigger win and takes two minutes.
+2. **Create a Cloudflare password:** log out, then use **Forgot password** on the Cloudflare login page. It emails a link that sets a password without asking for an old one. Signing in with Google keeps working afterwards.
+3. **Then enable Cloudflare 2FA:** Profile (top right) → **Authentication** → Two-Factor Authentication → **Set up**. Cloudflare supports an authenticator app (TOTP), a hardware key, or email as the second factor.
+
+Step 1 alone closes most of the risk. Steps 2–3 add a second factor even for someone who has already got into the Google account.
+
 ## BLOCKER before indexing — sitemap.xml must be regenerated
-`sitemap.xml` is hand-written and lists only the static pages. **Do not submit it to Google until it lists the real published posts**, or Google gets a map that doesn't match the site — which is worse than submitting nothing. Decide then between a Pages Function that renders it from `posts`, or regenerating it by hand at launch. Small either way, but it has to happen *before* Search Console verification, not after.
+`sitemap.xml` is hand-written and lists only the static pages. **Do not submit it to Google until it lists the real published posts**, or Google gets a map that doesn't match the site — which is worse than submitting nothing.
+
+**Sequencing agreed with Fero 2026-08-19: wait until there are real posts, then build it.** Writing the generator against an empty `posts` table would mean shipping something that can't be tested on real data — and the shape of the output (which posts, what `lastmod`, whether drafts are excluded) is easier to get right with something actually in the table. Claude picks this up once Fero has published; it comes before Search Console verification, not after.
 
 ## Just before launch — Google Search Console
 Fero wants Google crawling the site. Google verifies ownership with **one of** a `<meta name="google-site-verification" content="…">` tag in `<head>`, or an HTML file dropped at the site root. Fero will send whichever Google gives him and Claude puts it in the right place — the meta tag belongs in the `<head>` of `index.html` (and only there; Google checks the homepage).
