@@ -40,21 +40,18 @@ Worth doing in the same sitting:
 - `sitemap.xml` is currently **static and hand-written**. Before submitting it, it should list the real published posts, or Google gets a sitemap that doesn't match the site. Generating it needs a decision — a Pages Function that renders it from `posts`, or regenerating it by hand at launch.
 - `robots.txt` already disallows `/admin`, `/editor`, `/login` and `/api/`, so that side is ready.
 
-## Visitor analytics — Cloudflare Web Analytics (CSP is ready, Fero flips the switch)
-Fero asked for what Netlify gives him: real visitor numbers. The Cloudflare equivalent is **Web Analytics** — free, unlimited, cookieless, and it needs no consent banner because it doesn't track people across sites. It reports page views, unique visitors, referrers, countries, top pages and Core Web Vitals.
+## Done — visitor analytics (Cloudflare Web Analytics, 2026-08-19)
+Free, unlimited, cookieless, no consent banner needed. Reports page views, unique visitors, referrers, countries, top pages and Core Web Vitals.
 
-**The CSP has already been widened for it** (`static.cloudflareinsights.com` in `script-src`, `cloudflareinsights.com` in `connect-src`), done first deliberately: enabling the toggle without that would have loaded a beacon the CSP silently blocks, and the dashboard would stay empty — looking exactly like the "no traffic" symptom below, for a completely different reason.
+**Automatic injection is not available to TTT, and this is worth remembering rather than re-asking.** Cloudflare's one-click setup only works for a hostname *proxied through Cloudflare* — a domain you own, added as a zone, orange cloud on. `tadeleteentalk.pages.dev` is Cloudflare's own domain, not a zone, so the option genuinely doesn't exist for it. (Same root cause as Bot Fight Mode being unfindable. Both unlock together if TTT ever gets a custom domain.) The manual beacon is the correct path here, not a downgrade.
 
-**This needs a code change after all — correcting an earlier note.** Cloudflare's one-click "automatic injection" only works for hostnames **proxied through Cloudflare**, i.e. a zone you own. `tadeleteentalk.pages.dev` is Cloudflare's own domain, not a zone, so TTT needs the **manual setup**: Cloudflare gives a site token and the beacon `<script>` has to live in the pages.
+**What was done:** the beacon `<script type="module">` with site token `7e1be1b0c3704050b90d401991dcef86` sits on the four **public** pages — `index`, `article`, `category`, `404`. The token is public by design; it appears in the page source of every site using Web Analytics. `_headers` already allows `static.cloudflareinsights.com` (`script-src`) and `cloudflareinsights.com` (`connect-src`) — manual-setup beacons report to `cloudflareinsights.com/cdn-cgi/rum`.
 
-**Fero's step:** dashboard → **Analytics & Logs → Web Analytics → Add a site**, hostname `tadeleteentalk.pages.dev`, then copy the JS snippet it hands back and send the token over. The token is not a secret — it ships in the page source of every site using Web Analytics.
+**Deliberately NOT on `login`, `admin`, `editor`** — staff screens aren't worth measuring, and there's no reason to hand their URLs to a third party.
 
-**Then Claude adds**, to all seven pages:
-```html
-<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js"
-        data-cf-beacon='{"token": "SITE_TOKEN"}'></script>
-```
-`type="module"` matters — without it the script throws in very old browsers. Manual-setup beacons report to `cloudflareinsights.com/cdn-cgi/rum`, which is why `connect-src` names that host and `script-src` names `static.cloudflareinsights.com`; both are already in `_headers`.
+**Two things to expect, so neither looks like a bug:**
+- **Ad blockers block the beacon** — uBlock, Brave, DuckDuckGo and friends all do. If Fero browses with one, his own visits won't appear. Test in a clean browser before concluding it's broken.
+- **Data is unsampled for 7 days**, then aggregated to roughly 10% for long-term storage. Six months of history available.
 
 ## Later — Cloudflare Observability shows no traffic (2026-08-19)
 Fero noticed the Observability tab reporting zero traffic even though he and the tests have been hitting the site. **This is expected, not a bug:** that tab reports on **Workers/Functions invocations**, and TTT is static files plus two `/api/*` Functions. Requests for `index.html`, the CSS, the images — the actual traffic — never invoke a Worker, so they are correctly absent. Only `/api/sign-upload` and `/api/delete-image` calls would ever appear there.
