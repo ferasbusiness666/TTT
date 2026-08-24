@@ -35,6 +35,15 @@ Fero couldn't enable Cloudflare 2FA: he signs in with **Google SSO**, so the acc
 
 **Where it landed (2026-08-19): Fero enabled 2FA on the Google account and has declined Cloudflare's own for now.** That is a reasonable stopping point, not an outstanding task, and it should not be raised again unasked. While sign-in goes through Google, that Google account *is* the key to Cloudflare — so the factor that actually guards the login path he uses is in place. Cloudflare's own 2FA would add a second factor for someone who had already got into the Google account; the steps above are recorded for whenever he wants it.
 
+## Done — editor draft backup (2026-08-19)
+A browser that died mid-post used to take the whole post with it — the worst thing this editor could do to someone writing a long piece. Everything typed is now mirrored into `localStorage` a second after you stop typing, keyed by post id (or `new`), and offered back the next time that post is opened.
+
+**It only offers a draft back when that is genuinely the right thing:** the backup must differ from what is on screen, and for an existing post it must be **newer than the copy in the database**. Otherwise restoring would quietly undo a save made from another device, which is worse than the crash it protects against. The backup is deleted the moment a real save succeeds, and a brand-new post's `new` key is cleared once it has a real id, so it can't reappear in the next blank editor.
+
+**It also stopped the status line lying.** It used to swap to "Draft · saved just now ✓" on a 900ms timer without saving anything anywhere. It now says what actually happened — "backed up on this device", which is not the same as saved — and says "unsaved changes" if storage is full or blocked (a private window), rather than implying the work is safe when it isn't.
+
+Verified end to end in a real browser: typed a post, closed the tab without saving, reopened — the bar appeared and restored title and body exactly. Discard clears the backup and it does not come back. A fresh editor with no backup shows no bar at all.
+
 ## Done — indexing readiness (2026-08-19)
 Everything that could be prepared for Google *before* there are posts to index:
 - **Per-post metadata on `article.html`.** Every article was serving the site-level title and description, so all of them looked identical to search engines and link previews. Title, `description`, `og:*`, `twitter:*` and canonical are now built from the real post.

@@ -14,6 +14,19 @@
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
 <!-- staff-only screen: hide until the auth guard confirms a session (no flash) -->
 <script>document.documentElement.style.visibility = "hidden";</script>
+<style>
+  /* Draft-recovery bar. Same ink and border language as .editor-top so it
+     reads as part of the chrome; only ever visible when there is genuinely
+     something to recover. */
+  .draft-restore {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 10px 18px; border-bottom: var(--line);
+    background: var(--card-yellow, #F6E7B8); color: var(--ttt-dark);
+    font-family: var(--font-sans); font-size: 13px;
+  }
+  .draft-restore[hidden] { display: none; }
+  .draft-restore__text { flex: 1; min-width: 200px; }
+</style>
 </head>
 <!--
   POST EDITOR — Medium-style composer
@@ -37,6 +50,17 @@
     <span class="save-state" id="save-state">Draft · not saved</span>
     <button class="btn btn--ghost btn--sm" id="save-draft" type="button">SAVE DRAFT</button>
     <button class="btn btn--red btn--sm" id="publish" type="button">PUBLISH →</button>
+  </div>
+
+  <!-- Shown only when a local backup exists that is newer than what was
+       last saved to the database. Hidden otherwise, so in normal use the
+       editor looks exactly as it always has. -->
+  <div class="draft-restore" id="draft-restore" hidden>
+    <span class="draft-restore__text">
+      Unsaved draft found on this device from <b id="draft-restore-when">earlier</b>.
+    </span>
+    <button class="btn btn--ghost btn--sm" id="draft-restore-yes" type="button">RESTORE IT</button>
+    <button class="btn btn--ghost btn--sm" id="draft-restore-no" type="button">DISCARD</button>
   </div>
 
   <div class="editor-scroll">
@@ -561,10 +585,57 @@
 
     /* ---------- dirty / save state ---------- */
     var t;
+    /* Local draft backup.
+     *
+     * Nothing here talks to the database — this is a crash net. A browser
+     * that dies mid-post used to take the whole post with it, which for
+     * someone writing a long piece is the worst thing this editor could do.
+     * Everything typed is mirrored into localStorage a second after you stop
+     * typing, and offered back next time the same post is opened.
+     *
+     * The old behaviour also lied: the status swapped to "saved just now ✓"
+     * on a timer without saving anything anywhere. It now says what actually
+     * happened -- backed up on this device, which is not the same as saved. */
+    var DRAFT_KEY_PREFIX = "ttt.draft.";
+    var draftTimer = null;
+
+    function draftKey() {
+      return DRAFT_KEY_PREFIX + (currentPostId || "new");
+    }
+
+    function snapshot() {
+      return {
+        title:    document.getElementById("title").value,
+        deck:     document.getElementById("deck").value,
+        body:     document.getElementById("body").innerHTML,
+        type:     document.getElementById("cat-select").value,
+        category: (document.getElementById("category-select") || {}).value || "",
+        cover:    coverUrl,
+        video:    videoInput.value,
+        at:       Date.now()
+      };
+    }
+
+    function backupDraft() {
+      try {
+        localStorage.setItem(draftKey(), JSON.stringify(snapshot()));
+        saveState.textContent = "Draft · backed up on this device";
+      } catch (e) {
+        // Storage full or blocked (private window). Say so rather than
+        // implying the work is safe when it isn't.
+        saveState.textContent = "Draft · unsaved changes";
+      }
+    }
+
+    function clearDraft(id) {
+      try { localStorage.removeItem(DRAFT_KEY_PREFIX + (id || currentPostId || "new")); } catch (e) {}
+    }
+
     function dirty() {
       saveState.textContent = "Draft · unsaved changes";
       clearTimeout(t);
-      t = setTimeout(function () { saveState.textContent = "Draft · saved just now ✓"; }, 900);
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(backupDraft, 1000);
     }
     // Save/Publish persist to the `posts` table. savePost() is defined in
     // the auth-aware block at the bottom (where the Supabase client lives).
@@ -663,7 +734,17 @@
       }).then(function (r) {
         if (!r) { release(); return; }
         if (r.error) { saveState.textContent = "Draft · not saved"; toast("Couldn’t save: " + r.error.message); release(); return; }
-        if (r.data) { currentPostId = r.data.id; currentPublishedAt = r.data.published_at; }
+        if (r.data) {
+          // A brand-new post was backed up under "new"; once it has an id the
+          // backup belongs to that id, so drop the old key or it would be
+          // offered back the next time a blank editor is opened.
+          if (!currentPostId) clearDraft("new");
+          currentPostId = r.data.id;
+          currentPublishedAt = r.data.published_at;
+        }
+        // The database now holds this exact text, so the crash net has
+        // nothing left to protect.
+        clearDraft();
         // the post now points at the new cover, so the previous one is
         // safe (and correct) to delete
         if (originalCoverUrl && originalCoverUrl !== coverUrl && window.tttUpload.deleteImages) {
@@ -704,12 +785,67 @@
     }
 
     // Load an existing post into the editor when opened as ?id=<postId>.
+    /* Offer a local backup back, but only when it is genuinely worth having:
+     * it must differ from what is on screen, and for an existing post it must
+     * be NEWER than the copy in the database. Otherwise restoring would quietly
+     * undo a save made from another device, which is worse than losing the
+     * crash net it exists to provide. */
+    function offerDraft() {
+      var raw;
+      try { raw = localStorage.getItem(draftKey()); } catch (e) { return; }
+      if (!raw) return;
+
+      var d;
+      try { d = JSON.parse(raw); } catch (e) { clearDraft(); return; }
+
+      if (loadedUpdatedAt !== null && d.at <= loadedUpdatedAt) { clearDraft(); return; }
+
+      var live = snapshot();
+      if (d.title === live.title && d.deck === live.deck && d.body === live.body &&
+          d.cover === live.cover && d.video === live.video) { clearDraft(); return; }
+
+      var bar  = document.getElementById("draft-restore");
+      var when = document.getElementById("draft-restore-when");
+      try {
+        when.textContent = new Date(d.at).toLocaleString();
+      } catch (e) { when.textContent = "earlier"; }
+      bar.hidden = false;
+
+      document.getElementById("draft-restore-yes").addEventListener("click", function () {
+        document.getElementById("title").value = d.title || "";
+        document.getElementById("deck").value  = d.deck || "";
+        document.getElementById("body").innerHTML = d.body || "";
+        if (d.type) document.getElementById("cat-select").value = d.type;
+        var catSel = document.getElementById("category-select");
+        if (catSel && d.category !== undefined) catSel.value = d.category;
+        if (d.video) { videoInput.value = d.video; videoWrap.style.display = ""; }
+        if (d.cover) {
+          coverUrl = d.cover;
+          document.getElementById("cover-img").src = d.cover;
+          document.getElementById("cover-wrap").style.display = "";
+        }
+        grow(document.getElementById("title"));
+        grow(document.getElementById("deck"));
+        bar.hidden = true;
+        saveState.textContent = "Draft · restored, not yet saved";
+        toast("Draft restored — save it to keep it ★");
+      });
+
+      document.getElementById("draft-restore-no").addEventListener("click", function () {
+        clearDraft();
+        bar.hidden = true;
+      });
+    }
+
+    var loadedUpdatedAt = null;   // what the database holds, for the draft comparison
+
     function loadPostIntoEditor(id) {
       var client = window.tttAuth && window.tttAuth.client;
-      if (!client) return;
-      client.from("posts").select("*").eq("id", id).single().then(function (r) {
+      if (!client) return Promise.resolve();
+      return client.from("posts").select("*").eq("id", id).single().then(function (r) {
         if (r.error || !r.data) { toast("Couldn’t load that post"); return; }
         var p = r.data;
+        loadedUpdatedAt = p.updated_at ? new Date(p.updated_at).getTime() : 0;
         currentPostId = p.id;
         currentPublishedAt = p.published_at;
         document.getElementById("title").value = p.title || "";
@@ -746,7 +882,8 @@
         // Categories must be in the dropdown before we try to select one.
         loadCategories().then(function () {
           var editId = new URLSearchParams(window.location.search).get("id");
-          if (editId) loadPostIntoEditor(editId);
+          if (editId) loadPostIntoEditor(editId).then(offerDraft);
+          else offerDraft();
         });
       });
     } else {
