@@ -45,7 +45,16 @@ Fero asked for what Netlify gives him: real visitor numbers. The Cloudflare equi
 
 **The CSP has already been widened for it** (`static.cloudflareinsights.com` in `script-src`, `cloudflareinsights.com` in `connect-src`), done first deliberately: enabling the toggle without that would have loaded a beacon the CSP silently blocks, and the dashboard would stay empty — looking exactly like the "no traffic" symptom below, for a completely different reason.
 
-**Fero's step:** Cloudflare dashboard → **Workers & Pages → tadeleteentalk → Settings**, find **Web Analytics** and enable it (it may also appear under Analytics & Logs → Web Analytics → *Add a site*; the label moves between dashboard versions). Cloudflare injects the beacon at the edge — no code change needed on our side. Data appears within a few minutes of the next visit.
+**This needs a code change after all — correcting an earlier note.** Cloudflare's one-click "automatic injection" only works for hostnames **proxied through Cloudflare**, i.e. a zone you own. `tadeleteentalk.pages.dev` is Cloudflare's own domain, not a zone, so TTT needs the **manual setup**: Cloudflare gives a site token and the beacon `<script>` has to live in the pages.
+
+**Fero's step:** dashboard → **Analytics & Logs → Web Analytics → Add a site**, hostname `tadeleteentalk.pages.dev`, then copy the JS snippet it hands back and send the token over. The token is not a secret — it ships in the page source of every site using Web Analytics.
+
+**Then Claude adds**, to all seven pages:
+```html
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js"
+        data-cf-beacon='{"token": "SITE_TOKEN"}'></script>
+```
+`type="module"` matters — without it the script throws in very old browsers. Manual-setup beacons report to `cloudflareinsights.com/cdn-cgi/rum`, which is why `connect-src` names that host and `script-src` names `static.cloudflareinsights.com`; both are already in `_headers`.
 
 ## Later — Cloudflare Observability shows no traffic (2026-08-19)
 Fero noticed the Observability tab reporting zero traffic even though he and the tests have been hitting the site. **This is expected, not a bug:** that tab reports on **Workers/Functions invocations**, and TTT is static files plus two `/api/*` Functions. Requests for `index.html`, the CSS, the images — the actual traffic — never invoke a Worker, so they are correctly absent. Only `/api/sign-upload` and `/api/delete-image` calls would ever appear there.
@@ -53,7 +62,7 @@ Fero noticed the Observability tab reporting zero traffic even though he and the
 For real visitor numbers the tool is **Cloudflare Web Analytics** (free, privacy-preserving, no cookies). One catch to handle when we do it: it injects a beacon from `static.cloudflareinsights.com`, so `_headers` needs that host added to `script-src` and `connect-src`. Small, but it must be done in the same change or the CSP silently blocks the beacon and the tab stays empty — which would look exactly like the current symptom.
 
 ## Done — newsletter rate limiting (2026-08-19)
-Built in the database rather than as a Pages Function; see `04-database-schema.md`. 5 signups per visitor per hour, 200 site-wide, anon INSERT revoked so the `subscribe` RPC is the only way in. **Turnstile is still the upgrade** if a determined attacker with a proxy pool ever becomes a real problem — per-IP limiting doesn't stop that, the site-wide cap only bounds it.
+Built in the database rather than as a Pages Function; see `04-database-schema.md`. 30/IP/hour, 100/IP/day, 1000 and 3000 site-wide; anon INSERT revoked so the `subscribe` RPC is the only way in. (The first numbers were far too low — they treated one IP as one person, which breaks on school wifi and mobile CGNAT. Raised the same day.) **Turnstile is still the upgrade** if a determined attacker with a proxy pool ever becomes a real problem — per-IP limiting doesn't stop that, the site-wide cap only bounds it.
 
 ## Later — error + attack reporting to Telegram (decided 2026-08-19, not started)
 Parked at Fero's request; the decision is made, the build is not. Rationale for building rather than buying is in `02-tech-stack-and-decisions.md`.

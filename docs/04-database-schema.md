@@ -284,13 +284,15 @@ create table public.subscribe_attempts (
 -- security definer, search_path pinned, execute revoked from PUBLIC
 create function public.subscribe(p_email text) returns text ...
 --   'ok' | 'duplicate' | 'invalid' | 'rate_limited'
---   5 per IP per hour, 200 site-wide per hour
---   deletes attempts older than a day on each call
+--   30/IP/hour, 100/IP/day, 1000 site-wide/hour, 3000 site-wide/day
+--   deletes attempts older than two days on each call
 
 revoke insert on public.subscribers from anon;   -- RPC is the only way in
 drop policy "anyone can subscribe" on public.subscribers;
 ```
 
 **Why the IP is hashed:** this is a site for teenagers; there is no reason to keep a log of their addresses. The hash is salted so the table can't be reversed into a visitor list even by someone with database access.
+
+**The limits were raised the same day (`raise_newsletter_rate_limits`), and the first numbers were a real mistake worth remembering.** They started at 5/IP/hour, set as if one IP meant one person. It doesn't: a school is typically a single public address, and mobile carriers put thousands of phones behind one through CGNAT. TTT's readers are teenagers on school wifi and phone data — the original limit would have blocked most of a class the moment they tried to subscribe together. **When rate-limiting by IP, always ask how many real people sit behind one.** Current numbers let a class of 30 sign up in one lesson and only bite during an actual flood; if legitimate traffic ever trips them, raise them, because turning away readers is the worse failure.
 
 **Honest limit:** per-IP limiting is defence against casual abuse, not a determined attacker — anyone with a proxy pool presents as a different visitor each request. This was demonstrated accidentally: the first test run showed 7 requests sailing through the limit because the test sandbox egresses through rotating proxies, appearing as 5 separate visitors. **The site-wide cap of 200/hour is what actually bounds the damage.** Cloudflare Turnstile on the form remains the upgrade if it ever matters.
