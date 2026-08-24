@@ -35,6 +35,21 @@ Fero couldn't enable Cloudflare 2FA: he signs in with **Google SSO**, so the acc
 
 **Where it landed (2026-08-19): Fero enabled 2FA on the Google account and has declined Cloudflare's own for now.** That is a reasonable stopping point, not an outstanding task, and it should not be raised again unasked. While sign-in goes through Google, that Google account *is* the key to Cloudflare — so the factor that actually guards the login path he uses is in place. Cloudflare's own 2FA would add a second factor for someone who had already got into the Google account; the steps above are recorded for whenever he wants it.
 
+## Done — performance pass (2026-08-19), and what was deliberately left alone
+Measured first, on a 390px viewport with the CPU throttled 4x, then again after. **Payload 323KB → 294KB.**
+
+**Fixed:**
+- **`images/logo-badge.png`: 33KB → 4KB (88% smaller).** It was a 128px full-colour PNG for a badge displayed at 44px — the single most wasteful asset on the site. Now 96px (still crisp on a 2x screen) with a 128-colour palette. Compared side by side at display size: indistinguishable. A quantised PNG beat WebP here on both size *and* compatibility, so no format change was needed.
+- **Dropped Playfair Display weight 900 from the Google Fonts request** on all seven pages. Nothing in any stylesheet asks for `font-weight: 900` — it was being fetched for nothing. Confirmed against the Google Fonts API: 34 `@font-face` sources before, 30 after.
+
+**Already correct, checked rather than assumed:** card and gallery images already carry `loading="lazy"`, real `alt` text and Cloudinary's `f_auto,q_auto,w_*` sizing; `display=swap` is already on the font request; measured **CLS was 0**, because the media boxes reserve space with `aspect-ratio`.
+
+**Deliberately not done, with reasons:**
+- **supabase-js is 207KB — 70% of the page weight, and by far the biggest remaining lever.** Replacing it with plain `fetch()` calls on the public pages would remove nearly all of it, since those pages only do unauthenticated reads. It is also a real refactor of every public page's data layer, with real regression risk, in exchange for a page that is *already fast*: Cloudflare's own Web Analytics reports **LCP 100% "Good" and 124ms page load** from real visitors. Worth revisiting only if real-user numbers ever get worse.
+- **Making the Google Fonts stylesheet non-render-blocking** (`media="print"` + `onload`) would speed up first paint on a poor connection, but it trades that for a visible flash of fallback text on every load. That is a visual change for a site whose real-world load time is already 124ms, so it needs Fero's say-so rather than being slipped in.
+
+**Test note for next time:** a first measurement showed a 13-second first paint. That was an artifact — Google Fonts is unreachable from the sandbox and the stylesheet blocks render, so the run was measuring a hung request, not the site. Abort font requests in the harness before trusting any timing number from it.
+
 ## Done — editor draft backup (2026-08-19)
 A browser that died mid-post used to take the whole post with it — the worst thing this editor could do to someone writing a long piece. Everything typed is now mirrored into `localStorage` a second after you stop typing, keyed by post id (or `new`), and offered back the next time that post is opened.
 
