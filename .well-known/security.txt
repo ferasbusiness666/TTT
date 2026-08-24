@@ -1,0 +1,9 @@
+# Tadele Teen Talks — how to report a security problem.
+# If you find something wrong with this site, please tell us. We're a
+# teen-run publication, not a company; a plain email is fine and we'd
+# rather hear about it than not.
+
+Contact: mailto:feroomon10400@gmail.com
+Expires: 2027-08-19T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://tadeleteentalk.pages.dev/.well-known/security.txt

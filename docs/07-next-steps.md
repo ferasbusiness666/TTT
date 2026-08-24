@@ -30,6 +30,21 @@ and the history. **M** = Claude can build it now, **F** = only Fero can do it,
 
 Nothing security-related is open. Everything above is features, content or polish.
 
+## Just before launch — Google Search Console
+Fero wants Google crawling the site. Google verifies ownership with **one of** a `<meta name="google-site-verification" content="…">` tag in `<head>`, or an HTML file dropped at the site root. Fero will send whichever Google gives him and Claude puts it in the right place — the meta tag belongs in the `<head>` of `index.html` (and only there; Google checks the homepage).
+
+Worth doing in the same sitting:
+- `sitemap.xml` is currently **static and hand-written**. Before submitting it, it should list the real published posts, or Google gets a sitemap that doesn't match the site. Generating it needs a decision — a Pages Function that renders it from `posts`, or regenerating it by hand at launch.
+- `robots.txt` already disallows `/admin`, `/editor`, `/login` and `/api/`, so that side is ready.
+
+## Later — Cloudflare Observability shows no traffic (2026-08-19)
+Fero noticed the Observability tab reporting zero traffic even though he and the tests have been hitting the site. **This is expected, not a bug:** that tab reports on **Workers/Functions invocations**, and TTT is static files plus two `/api/*` Functions. Requests for `index.html`, the CSS, the images — the actual traffic — never invoke a Worker, so they are correctly absent. Only `/api/sign-upload` and `/api/delete-image` calls would ever appear there.
+
+For real visitor numbers the tool is **Cloudflare Web Analytics** (free, privacy-preserving, no cookies). One catch to handle when we do it: it injects a beacon from `static.cloudflareinsights.com`, so `_headers` needs that host added to `script-src` and `connect-src`. Small, but it must be done in the same change or the CSP silently blocks the beacon and the tab stays empty — which would look exactly like the current symptom.
+
+## Later — no rate limit on the newsletter form
+Flagged by both the re-test and Cloudflare's own scan. Anyone can bulk-insert valid-format addresses into `subscribers`; the CHECK constraint stops garbage but not volume. The fix is a **Cloudflare Turnstile** widget on the form (free, and it closes the CSV's "No Turnstile enabled" finding at the same time). Not urgent — it matters once TTT has an audience worth spamming.
+
 ## Later — error + attack reporting to Telegram (decided 2026-08-19, not started)
 Parked at Fero's request; the decision is made, the build is not. Rationale for building rather than buying is in `02-tech-stack-and-decisions.md`.
 
