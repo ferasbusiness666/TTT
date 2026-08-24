@@ -26,7 +26,7 @@ and the history. **M** = Claude can build it now, **F** = only Fero can do it,
 | 16 | F | **Create the real staff accounts** in Supabase → Authentication → Users. Set `full_name` or the name shows as the email address. |
 | 17 | F | **Check the site on a real phone.** The mobile fixes were only ever verified in a simulated 390px browser. |
 | 18 | F | **Decide the newsletter-sending approach** — Resend, or send manually. "Deferred" is a valid answer; it doesn't block launch. |
-| 19 | M | **Re-confirm the access rules** once subscribe is wired — that nothing beyond published posts and subscriber inserts is reachable without logging in. |
+| 19 | ✅ | **Access rules re-confirmed** 2026-08-19 with the subscribe box wired. Anonymous callers can read published `posts`, `categories` and `post_media` and nothing else; **every table refuses a direct write**, including `subscribers`. The only public write path is the rate-limited `subscribe` RPC. |
 
 Nothing security-related is open. Everything above is features, content or polish.
 
@@ -134,7 +134,7 @@ Recorded verbatim in intent; several need a decision from Fero before they can b
 ## Before telling anyone it's ready — full security check
 - [x] Row Level Security is ON for every table — audited 2026-08-13, all 5 tables
 - [x] Every policy matches the plan: public read-only, staff write — audited; grants also tightened to least privilege (migration `harden_table_grants_least_privilege`)
-- [~] Nothing can be called without logging in — by design the public CAN read *published* posts and insert into `subscribers`; everything else requires auth (admin/editor pages redirect, and RLS blocks the rest). Re-confirm once posts/subscribe are wired.
+- [x] Nothing can be called without logging in — **re-confirmed 2026-08-19** now that posts and subscribe are wired. Probed every table as an anonymous caller with the public key: reads succeed only on published `posts`, `categories` and `post_media`; `profiles` (via `select=*`), `subscribers` and `subscribe_attempts` all return `42501`. **Every table refuses a direct INSERT**, `subscribers` included — the sole public write path is `rpc/subscribe`, which validates and rate-limits before writing.
 - [x] **Public sign-up is switched OFF** in Supabase's Auth settings — disabled by Fero 2026-08-13 and verified (the signup API now returns "Signups not allowed for this instance").
 - [~] Leaked-password protection (HaveIBeenPwned) — **Pro-plan only, unavailable on the free plan.** Deferred by decision: accounts are admin-created for a small staff and use strong passwords. Revisit only if the project ever moves to Pro. See `05-known-issues.md`.
 - [x] No `service_role` or Cloudinary secret key anywhere in the committed code — verified (only the public publishable key is in client code)

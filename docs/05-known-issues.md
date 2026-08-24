@@ -9,6 +9,10 @@ None right now.
   This resolves itself as TTT publishes: each section flips to real posts and its links become real. If it's annoying in the meantime, the fix is to delete the demo cards from `index.html` outright — a design change, so ask first.
 
 ## Decided / accepted (not going to fix)
+- **Three security-advisor warnings are expected and correct.** Checked 2026-08-19 after the newsletter work:
+  - `public.subscribe` is a `SECURITY DEFINER` function executable by `anon` — **that is the entire design**. It exists so the public can subscribe without holding an INSERT grant, and it validates and rate-limits before writing. Revoking EXECUTE would break the newsletter.
+  - `subscribe_attempts` has RLS enabled with no policies — also deliberate. No policies plus no grants means the table is unreachable through the Data API; only the definer function touches it.
+  - Leaked-password protection is Pro-plan only (see below).
 - **The circular TTT badge is hidden on phones (≤480px).** It sits inches from the wordmark that says the same thing, and the space it took was what squeezed the wordmark into an unreadable 101px column. Dropping it on phones is what let the masthead read properly; it still shows on tablet and desktop. Say the word if you'd rather keep it and lose something else instead.
 - **Leaked-password protection stays off — it's Pro-plan only.** Supabase's HaveIBeenPwned check requires the Pro plan; this project is on the free plan, so the toggle isn't available. Accepted: accounts are admin-created for a small, fixed staff and use strong passwords, so credential-stuffing risk is low. Revisit only if the project moves to Pro. (This is the sole remaining security-advisor warning, and it's expected.)
 
