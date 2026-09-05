@@ -70,9 +70,31 @@
    * (object-fit: cover) slices the picture. `.is-natural` drops the fixed
    * aspect-ratio so the image keeps its own proportions and the card grows
    * to match. Placeholders keep a ratio — they have no intrinsic size. */
+  /* A video post with no cover still has a picture -- YouTube renders one for
+   * every video. Free thumbnail, and one less thing to remember at publish
+   * time. Built only from an id this strict pattern accepts, so a malformed
+   * video_url yields nothing rather than a broken URL. i.ytimg.com is in
+   * img-src for exactly this. cdn() leaves it alone: it only rewrites URLs
+   * containing /image/upload/, which a YouTube thumbnail never does. */
+  function youtubeThumb(url) {
+    if (!url) return null;
+    var m = String(url).match(
+      /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/
+    );
+    return m ? "https://i.ytimg.com/vi/" + m[1] + "/hqdefault.jpg" : null;
+  }
+
+  /* The picture a card should show: the cover if there is one, else a video's
+   * own thumbnail. null when there genuinely isn't one, and the caller falls
+   * back to the placeholder box. */
+  function cardImage(p) {
+    return p.cover_image_url || youtubeThumb(p.video_url);
+  }
+
   function media(p, ratioCls, phLabel, extra) {
-    if (p.cover_image_url) {
-      return '<div class="media is-natural"><img src="' + esc(cdn(p.cover_image_url, 900)) + '" alt="' + esc(p.title) + '" loading="lazy">' + (extra || "") + "</div>";
+    var img = cardImage(p);
+    if (img) {
+      return '<div class="media is-natural"><img src="' + esc(cdn(img, 900)) + '" alt="' + esc(p.title) + '" loading="lazy">' + (extra || "") + "</div>";
     }
     return '<div class="media ' + (ratioCls || "") + ' ph"><code>' + esc(phLabel) + "</code>" + (extra || "") + "</div>";
   }
@@ -127,8 +149,9 @@
    * .media is aspect-ratio:auto), which is what "ratio matches the
    * artwork" means. Without one we fall back to the slot's shape.      */
   function gitem(p, slot) {
-    var box = p.cover_image_url
-      ? '<div class="media"><img src="' + esc(cdn(p.cover_image_url, 900)) + '" alt="' + esc(p.title) + '" loading="lazy"></div>'
+    var img = cardImage(p);
+    var box = img
+      ? '<div class="media"><img src="' + esc(cdn(img, 900)) + '" alt="' + esc(p.title) + '" loading="lazy"></div>'
       : '<div class="media ph" style="aspect-ratio:' + slot.ar + '; background-color: ' + slot.color + ';"><code>' + esc(slot.label) + "</code></div>";
     return '<a class="gitem" href="' + link(p) + '">' + box +
       '<div class="cap"><div class="t">' + esc(p.title) + '</div><div class="a">by ' + esc(author(p)) + "</div></div></a>";
@@ -145,8 +168,9 @@
   function archiveCard(p) {
     var type  = p.post_type || "article";
     var ratio = ARCHIVE_RATIO[type] || "r-4-3";
-    var box = p.cover_image_url
-      ? '<span class="media is-natural"><img src="' + esc(cdn(p.cover_image_url, 900)) + '" alt="' + esc(p.title) + '" loading="lazy"></span>'
+    var img = cardImage(p);
+    var box = img
+      ? '<span class="media is-natural"><img src="' + esc(cdn(img, 900)) + '" alt="' + esc(p.title) + '" loading="lazy"></span>'
       : '<span class="media ' + ratio + ' ph"><code>' + esc(ARCHIVE_PH[type] || "photo") + "</code></span>";
     return '<a class="acard" data-cat="' + (TYPE_TO_CAT[type] || "articles") + '" href="' + link(p) + '">' + box +
       '<span class="body">' +
@@ -164,7 +188,7 @@
   function fetchPosts(client, opts) {
     opts = opts || {};
     var q = client.from("posts")
-      .select("id, title, slug, excerpt, cover_image_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name)")
+      .select("id, title, slug, excerpt, cover_image_url, video_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name)")
       .eq("status", "published");
     if (opts.type) q = q.eq("post_type", opts.type);
     /* The gallery wall is a wall of pictures — a post with no cover would
@@ -176,12 +200,42 @@
             .then(function (r) { return (r && r.data) || []; });
   }
 
-  /* Replace a container's cards only when there are enough posts to fill
-   * every slot; otherwise leave the authored demo markup exactly as-is. */
-  function fillSection(container, posts, slots, renderFn) {
-    if (!container || !posts || posts.length < slots.length) return false;
-    container.innerHTML = slots.map(function (slot, i) { return renderFn(posts[i], slot); }).join("");
+  /* Put real posts into a section.
+   *
+   * Default (opts.partial falsy) is the pre-launch rule: only take over the
+   * section when there are enough posts to fill every slot, otherwise leave
+   * the authored demo markup alone so the site never looks half-built.
+   *
+   * With opts.partial, the section renders however many posts exist -- the
+   * behaviour needed once the demo cards are gone. opts.min is the point
+   * below which the section isn't worth showing at all (a "rail" of one
+   * isn't a rail); below it the section and its heading hide entirely.
+   * Whether the section is "short" is the caller's business, not this
+   * function's -- the trending grid hands over a trimmed slot list, so by
+   * the time it arrives here the arrays are the same length either way. */
+  function fillSection(container, posts, slots, renderFn, opts) {
+    opts = opts || {};
+    if (!container || !posts) return false;
+
+    if (!opts.partial) {
+      // Pre-launch rule: all or nothing, otherwise leave the demo markup.
+      if (posts.length < slots.length) return false;
+    } else if (posts.length < (opts.min || 1)) {
+      hideSection(container);
+      return false;
+    }
+
+    var use = slots.slice(0, posts.length);
+    container.innerHTML = use.map(function (slot, i) { return renderFn(posts[i], slot); }).join("");
     return true;
+  }
+
+  /* Hide a section and the section-label that introduces it -- a heading over
+   * an empty band reads as something broken rather than something absent. */
+  function hideSection(container) {
+    container.style.display = "none";
+    var prev = container.previousElementSibling;
+    if (prev && prev.classList.contains("section-label")) prev.style.display = "none";
   }
 
   /* Has TTT published anything at all? The single switch for the archive
@@ -258,7 +312,7 @@
   window.tttPosts = {
     esc: esc, link: link, cdn: cdn, author: author, label: label, date: date, media: media,
     bentoCard: bentoCard, vcard: vcard, acard: acard, gitem: gitem, archiveCard: archiveCard,
-    fetchPosts: fetchPosts, fillSection: fillSection, hasPublished: hasPublished,
+    cardImage: cardImage, youtubeThumb: youtubeThumb, fetchPosts: fetchPosts, fillSection: fillSection, hideSection: hideSection, hasPublished: hasPublished,
     wireNewsletter: wireNewsletter
   };
 })();

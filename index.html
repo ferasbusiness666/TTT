@@ -330,6 +330,17 @@ button { font: inherit; }
 .k-newsvideo    { grid-column: 4;     grid-row: 2; }
 .k-opinionart   { grid-column: 5;     grid-row: 2; }
 
+/* Fewer than seven posts. The seven cards above are pinned to exact grid
+   coordinates, so rendering only some of them would leave holes in the
+   middle of the layout -- broken, rather than simply smaller. While the
+   grid is short, drop the pinning and let the cards place themselves: the
+   featured card keeps its 2x2 footprint, everything else packs in after it.
+   At seven or more this class is absent and the designed layout above is
+   untouched. */
+.bento.is-partial .card { grid-column: auto; grid-row: auto; }
+.bento.is-partial .k-featured { grid-column: span 2; grid-row: span 2; }
+.bento.is-partial { grid-auto-flow: dense; grid-auto-rows: 185px; }
+
 /* ---- FEATURED hero — dominant via treatment, not just span -------- */
 .k-featured { padding: 26px; border-width: 2.5px; }
 .k-featured .glyph { font-size: 230px; top: -42px; right: -20px; color: rgba(26,15,5,0.09); }
@@ -1262,32 +1273,67 @@ button { font: inherit; }
        * post rank -> slot index instead: newest to the featured slot, then
        * the rest across the small cards in date order. DOM order is
        * untouched, so the grid looks exactly the same on every screen. */
+      /* The demo cards written into this page are still the fallback until
+       * TTT has real posts to replace them -- see docs/11-auto-publishing.md
+       * section 9. Flip this to true and every section below renders however
+       * many real posts exist instead, hiding itself when it has too few to
+       * be worth showing. That flip is the point of no return, so it is a
+       * deliberate one-word change rather than something that happens by
+       * itself. */
+      var ALLOW_PARTIAL_SECTIONS = false;
+
       var BENTO_BY_IMPORTANCE = [1, 0, 2, 3, 4, 5, 6];
 
-      function byImportance(posts) {
-        if (posts.length < BENTO_SLOTS.length) return posts;   // fillSection keeps the demo cards
-        var ordered = [];
-        BENTO_BY_IMPORTANCE.forEach(function (slotIndex, rank) { ordered[slotIndex] = posts[rank]; });
-        return ordered;
+      /* Which post goes in which slot, at any number of posts.
+       *
+       * A full grid keeps the authored DOM order exactly, so the designed
+       * layout is untouched; only the post-to-slot mapping is by importance.
+       *
+       * A short grid picks slots in importance order instead of array order.
+       * Taking the first N slots off the front would hand the newest post
+       * whichever card happens to sit at index 0 -- a small one -- and give
+       * the big block to the second-newest. Both wrong: the newest post
+       * should always be the biggest thing on the page. */
+      function bentoPlan(posts) {
+        var n = Math.min(posts.length, BENTO_SLOTS.length);
+
+        if (n === BENTO_SLOTS.length) {
+          var ordered = [];
+          BENTO_BY_IMPORTANCE.forEach(function (slotIndex, rank) { ordered[slotIndex] = posts[rank]; });
+          return { posts: ordered, slots: BENTO_SLOTS, partial: false };
+        }
+
+        var slots = [], rows = [];
+        for (var rank = 0; rank < n; rank++) {
+          slots.push(BENTO_SLOTS[BENTO_BY_IMPORTANCE[rank]]);   // featured first
+          rows.push(posts[rank]);
+        }
+        return { posts: rows, slots: slots, partial: true };
       }
 
       // Trending grid — newest published posts of any type.
       P.fetchPosts(client, { limit: BENTO_SLOTS.length }).then(function (posts) {
-        P.fillSection(document.querySelector("main.bento"), byImportance(posts), BENTO_SLOTS, P.bentoCard);
+        var bento = document.querySelector("main.bento");
+        var plan  = bentoPlan(posts);
+        // Only pack when the grid is genuinely short; a full grid keeps the
+        // authored positions and renders exactly as designed.
+        if (ALLOW_PARTIAL_SECTIONS) bento.classList.toggle("is-partial", plan.partial);
+        P.fillSection(bento, plan.posts, plan.slots, P.bentoCard,
+                      { partial: ALLOW_PARTIAL_SECTIONS, min: 1 });
       });
 
       // Videos & Blogs rail.
       P.fetchPosts(client, { type: "video", limit: RAIL_COLORS.length }).then(function (posts) {
         P.fillSection(document.querySelector(".rail"), posts, RAIL_COLORS, function (p, color) {
           return P.vcard(p, color);
-        });
+        }, { partial: ALLOW_PARTIAL_SECTIONS, min: 2 });   // a rail of one isn't a rail
       });
 
       // Latest Articles — first entry is the wide lead card.
       P.fetchPosts(client, { type: "article", limit: 6 }).then(function (posts) {
         P.fillSection(document.querySelector("section.articles"), posts, [0, 1, 2, 3, 4, 5], function (p, i) {
           return P.acard(p, i === 0);
-        });
+        }, { partial: ALLOW_PARTIAL_SECTIONS, min: 1 });   // the wide lead card stands alone fine
       });
 
       // Newsletter — the subscribe box writes to `subscribers`.
@@ -1299,7 +1345,8 @@ button { font: inherit; }
        * part of what TTT makes; keeping them out left the wall empty while
        * real work sat on the site. Covers only, so one post appears once. */
       P.fetchPosts(client, { withCover: true, limit: GALLERY_SLOTS.length }).then(function (posts) {
-        P.fillSection(document.querySelector("section.gallery"), posts, GALLERY_SLOTS, P.gitem);
+        P.fillSection(document.querySelector("section.gallery"), posts, GALLERY_SLOTS, P.gitem,
+                      { partial: ALLOW_PARTIAL_SECTIONS, min: 3 });   // a wall needs a wall
       });
     })();
   </script>

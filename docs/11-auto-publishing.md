@@ -1,6 +1,10 @@
 # Auto-Publishing — how a new post reaches the site by itself
 
-**Status: plan only. Nothing here is built yet.**
+**Status: partly built.** Sections 4 (YouTube thumbnails) and 5 (partial
+layouts) are implemented and tested. **The switch is off** — `index.html` has
+`ALLOW_PARTIAL_SECTIONS = false`, so the live site still shows the demo cards
+and behaves exactly as before. Flipping that one word is the point of no
+return and needs Fero's go-ahead, after real posts exist.
 Written 2026-09-05 at Fero's request. This document covers one system and
 nothing else: what happens between pressing **Publish** in the editor and the
 story appearing in the right place on the site, with no one asking Claude to
@@ -133,10 +137,17 @@ gallery is a masonry wall precisely so mixed shapes look deliberate.
 | Gallery wall | **the post is excluded** — a placeholder on a wall of pictures reads as a broken image |
 | Share preview | falls back to `images/og-cover.png` |
 
-**Open question (4.1):** should a video post with no cover use its YouTube
-thumbnail (`https://i.ytimg.com/vi/<id>/maxresdefault.jpg`)? It would mean
-every video has an image for free. Cost: `i.ytimg.com` must be added to
-`img-src` in `_headers`, which widens the CSP slightly.
+**Decided 2026-09-05 and built: yes.** A video post with no cover now uses its
+own YouTube thumbnail, so every video has a picture for free.
+`https://i.ytimg.com` was added to `img-src`. The id is only ever taken from a
+strict 11-character pattern (`watch?v=`, `youtu.be/`, `/embed/`, `/shorts/`),
+so a malformed `video_url` produces nothing rather than a broken image, and a
+real cover always wins over the thumbnail. `cdn()` leaves these URLs alone
+because it only rewrites paths containing `/image/upload/`.
+
+**Note:** the gallery wall still requires a *real* cover. A wall of
+photography padded out with video thumbnails is a different thing from a
+gallery. Revisit if the wall stays thin.
 
 **Open question (4.2):** should the editor *warn* when publishing without a
 cover? Not block — warn. A post with no photo is legal but weaker everywhere it
@@ -153,7 +164,27 @@ The trending grid places all seven cards at **explicit** grid coordinates. Drop
 three of them and the remaining cards stay pinned where they were, leaving
 holes in the middle of the layout. It would look broken, not sparse.
 
-### Recommended approach — two layout modes
+### Built 2026-09-05 — and the research changed the design twice
+
+The approach below was tested at every post count from 1 to 8 before being
+built, and **the first two attempts were wrong in ways that only showed up
+when measured**:
+
+1. Taking the first N slots off the front of the array gave the newest post
+   whichever card sits at index 0 — a *small* one — and **handed the big block
+   to the second-newest**. With a single post there was no big block at all.
+   The fix: pick slots in *importance* order, so the featured slot is always
+   filled first.
+2. The "is this grid short?" test lived inside `fillSection`, which compares
+   the posts array against the slots array — but the caller now hands over a
+   trimmed slot list, so the two are always equal and the packing CSS never
+   applied. The fix: the caller decides, because the caller is the only one
+   that knows.
+
+Verified after fixing, at every count 1–8: the featured card holds the newest
+post every time, and at 7+ the authored layout is used untouched.
+
+### The approach — two layout modes
 
 **When there are 7 or more posts:** keep exactly what exists today. Explicit
 positions, byte-identical to the current design. Zero risk to the layout Fero
@@ -173,8 +204,13 @@ This gives a natural ramp:
 | 4–6 | featured plus a filled row, packing left to right |
 | 7+ | the designed grid, unchanged |
 
-**This must be verified at exactly 7** — the auto-flow path must never be the
-one that renders a full grid, or the approved layout could drift.
+**Verified at exactly 7:** the packing class is absent and the authored
+positions are used, so the approved layout cannot drift.
+
+**One case still needs Fero's eye: a single post.** It renders as one 488px
+featured card with the rest of the row empty — not broken, but lopsided under
+a full-width section rule. Options: let the lone card span the full width, or
+accept it as a state the site passes through in its first hour. Not decided.
 
 ### Minimums before a section appears at all
 
@@ -228,10 +264,10 @@ post is visible to the next person who opens the site — no cache to wait out.
 suffix, and never change on edit. That is the right default — changing a slug
 breaks every link already shared. Worth confirming Fero agrees.
 
-**Open question (6.2):** scheduled publishing. Setting `published_at` to a
-future time currently makes no difference, because the queries filter on
-`status` alone. Adding `published_at <= now()` would give real scheduling for
-one line of code. Wanted, or unnecessary?
+**Decided 2026-09-05: no scheduled publishing.** Publishing stays manual —
+Fero presses Publish and it goes live. `published_at` in the future is
+therefore not a supported thing to do; it would appear immediately. Revisit
+only if it is ever actually wanted.
 
 ---
 
