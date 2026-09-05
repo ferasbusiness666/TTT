@@ -9,6 +9,7 @@ None right now.
   This resolves itself as TTT publishes: each section flips to real posts and its links become real. If it's annoying in the meantime, the fix is to delete the demo cards from `index.html` outright — a design change, so ask first.
 
 ## Decided / accepted (not going to fix)
+- **"Get an adult to read the legal pages" — parked, optional, not a task.** Claude raised this unprompted when the Terms and Privacy pages went up. It is advice, not a requirement, and Fero has parked it. The reasoning is recorded only so nobody re-raises it as a blocker: a Terms page written by a minor is weaker as a contract, and email addresses carry real deletion obligations in some places. Neither stops TTT launching. **Do not bring this up again unless Fero asks.**
 - **Three security-advisor warnings are expected and correct.** Checked 2026-08-19 after the newsletter work:
   - `public.subscribe` is a `SECURITY DEFINER` function executable by `anon` — **that is the entire design**. It exists so the public can subscribe without holding an INSERT grant, and it validates and rate-limits before writing. Revoking EXECUTE would break the newsletter.
   - `subscribe_attempts` has RLS enabled with no policies — also deliberate. No policies plus no grants means the table is unreachable through the Data API; only the definer function touches it.

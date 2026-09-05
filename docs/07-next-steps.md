@@ -44,11 +44,14 @@ Fero couldn't enable Cloudflare 2FA: he signs in with **Google SSO**, so the acc
 
 **Settled 2026-09-05: there is no entity, office or postal address, and that is fine.** TTT is an online community, not a registered company. Claude had flagged "decide a jurisdiction and legal entity" as a pre-launch task; that was overstated. A small non-commercial publication does not need one, and the pages already say plainly that TTT is not a company. The contact route is the email address, which is what a reader or a data request actually needs. **Nothing here is outstanding — do not re-raise it as a blocker.**
 
-## Later — plan doc for "a new post just appears on the site"
-Fero wants posting to be self-service: publish in the editor and the story lands on the site in the right place, without asking Claude. **He has explicitly asked that this NOT be planned yet — wait until he says so.**
+## Auto-publishing — planned, see `11-auto-publishing.md`
+Written 2026-09-05. Its own document, covering only that system: what happens between pressing Publish and the story appearing in the right place, where each post type goes, what happens to the cover photo, and how the homepage should look while there are only a few posts.
 
-When he does: it goes in its **own new `.md` file**, covering only this system — how it works end to end, where the photo goes, how the layout decides what appears where, and what happens to each post type. Not a section in an existing doc.
+**Headline finding: most of it already works.** No build or deploy is involved — every public page queries the database on load, so a published post is visible to the next visitor. The one thing standing in the way is `fillSection`'s all-or-nothing rule in `assets/ttt-posts.js`: a homepage section only switches to real posts once there are enough to fill *every* slot, and keeps the demo cards below that.
 
+**The real design work** is what the trending grid does with fewer than seven posts — its cards are placed at explicit grid coordinates, so removing some leaves holes rather than a smaller grid. The document proposes two layout modes (explicit positions at 7+, auto-flow below) and asks Fero seven questions before anything is built.
+
+**Nothing is built yet, deliberately.** Build order is in section 9 of that doc; the point of no return is deleting the demo cards, which needs Fero's explicit go-ahead and should come *after* real posts exist.
 ## Done — share previews rendered at the edge (2026-08-24)
 `article.html` sets its title, description and `og:*` from the post once JavaScript runs. Google renders JavaScript, so search was fine — but **social crawlers do not run JS**, so every shared link previewed with the site-level title, the generic description and the default cover, whichever story it pointed at. That quietly defeated the per-post metadata work for the sharing path.
 
