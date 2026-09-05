@@ -69,6 +69,8 @@
         '<a href="category.html?cat=artwork">ARTWORK</a>' +
         '<a href="index.html#founders">FOUNDERS</a>' +
         '<a href="login.html">SIGN IN</a>' +
+        '<a href="terms.html">TERMS</a>' +
+        '<a href="privacy.html">PRIVACY</a>' +
       '</nav>' +
       '<div class="fsocial-block">' +
         '<a class="discord-btn" href="https://discord.gg/G8fC4aJtM" target="_blank" rel="noopener noreferrer" aria-label="Join the TTT Discord">' +

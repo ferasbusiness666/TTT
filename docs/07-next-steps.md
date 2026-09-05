@@ -35,6 +35,18 @@ Fero couldn't enable Cloudflare 2FA: he signs in with **Google SSO**, so the acc
 
 **Where it landed (2026-08-24): Fero enabled 2FA on the Google account and has declined Cloudflare's own for now.** That is a reasonable stopping point, not an outstanding task, and it should not be raised again unasked. While sign-in goes through Google, that Google account *is* the key to Cloudflare — so the factor that actually guards the login path he uses is in place. Cloudflare's own 2FA would add a second factor for someone who had already got into the Google account; the steps above are recorded for whenever he wants it.
 
+## Done — Terms and Privacy pages (2026-09-05)
+`terms.html` and `privacy.html`, both linked from the footer (in `assets/ttt.js` **and** `index.html`'s own copy) and added to `sitemap.xml`. Built entirely from existing components — shared chrome plus the article reading column — so no new design was invented.
+
+**The privacy page describes what the site actually does, verified rather than assumed.** Loaded three pages as an anonymous reader and checked the browser afterwards: **zero cookies, zero localStorage, zero sessionStorage.** That is why the page can say there is no cookie banner because there is nothing to consent to — it is a real position, not boilerplate. Also disclosed honestly: the salted, two-day IP hash used for newsletter rate limiting, and that Google Fonts and jsDelivr both see a reader's network address (worth removing later by self-hosting the fonts).
+
+**These are not legal advice and Claude is not a lawyer.** They are an honest, specific description of what TTT does with data, which is the hard part and the part most templates get wrong. Before launch an adult should read both — particularly because the site is run by minors and collects email addresses, which is where the actual legal exposure sits. Two things deliberately left out rather than invented: **a governing jurisdiction and any legal entity or postal address.** Fero needs to decide those with an adult; a made-up jurisdiction is worse than none.
+
+## Later — plan doc for "a new post just appears on the site"
+Fero wants posting to be self-service: publish in the editor and the story lands on the site in the right place, without asking Claude. **He has explicitly asked that this NOT be planned yet — wait until he says so.**
+
+When he does: it goes in its **own new `.md` file**, covering only this system — how it works end to end, where the photo goes, how the layout decides what appears where, and what happens to each post type. Not a section in an existing doc.
+
 ## Done — share previews rendered at the edge (2026-08-24)
 `article.html` sets its title, description and `og:*` from the post once JavaScript runs. Google renders JavaScript, so search was fine — but **social crawlers do not run JS**, so every shared link previewed with the site-level title, the generic description and the default cover, whichever story it pointed at. That quietly defeated the per-post metadata work for the sharing path.
 
