@@ -48,18 +48,22 @@ export async function onRequest(context) {
     const post = await fetchPost(env, slug);
     if (!post) return response;
 
-    const canonical = url.origin + "/article.html?post=" + encodeURIComponent(slug);
+    // Pages 308-redirects /article.html to /article, so the extensionless
+    // form is the one that actually serves the page. A canonical pointing
+    // at a redirect is the wrong URL to nominate.
+    const canonical = url.origin + "/article?post=" + encodeURIComponent(slug);
     const image = post.cover_image_url || url.origin + "/images/og-cover.png";
     const description = post.excerpt || "A story from Tadele Teen Talks.";
     const title = post.title + " — Tadele Teen Talks";
 
-    // setAttribute escapes for us, so a title containing quotes or angle
-    // brackets can't break out of the attribute.
+    // Quotes are escaped by setAttribute; &, < and > are escaped by attr()
+    // below, because setAttribute passes those through raw. The <title> uses
+    // setInnerContent, which treats its argument as text and escapes it.
     let rewriter = new HTMLRewriter()
       .on("title", { element(el) { el.setInnerContent(title); } })
-      .on('meta[name="description"]',        { element(el) { el.setAttribute("content", description); } })
-      .on('meta[property="og:title"]',       { element(el) { el.setAttribute("content", post.title); } })
-      .on('meta[property="og:description"]', { element(el) { el.setAttribute("content", description); } })
+      .on('meta[name="description"]',        { element(el) { el.setAttribute("content", attr(description)); } })
+      .on('meta[property="og:title"]',       { element(el) { el.setAttribute("content", attr(post.title)); } })
+      .on('meta[property="og:description"]', { element(el) { el.setAttribute("content", attr(description)); } })
       .on('meta[property="og:image"]',       { element(el) { el.setAttribute("content", image); } })
       .on('meta[property="og:type"]',        { element(el) { el.setAttribute("content", "article"); } })
       .on('meta[name="twitter:card"]',       { element(el) { el.setAttribute("content", "summary_large_image"); } })
@@ -109,6 +113,19 @@ async function fetchPost(env, slug) {
   } finally {
     clearTimeout(timer);
   }
+}
+
+/* setAttribute escapes double quotes but passes &, < and > through raw --
+ * checked against the live response, where an excerpt containing "&" and
+ * "<" came back unescaped. A bare & is a parsing hazard the moment a post's
+ * text contains something like "&amp" or "&copy", so escape those three
+ * here and leave the quotes to setAttribute (which would otherwise
+ * double-escape them). */
+function attr(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function escapeAttr(s) {

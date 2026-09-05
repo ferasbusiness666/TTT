@@ -388,7 +388,10 @@
            * Function — noted in 07-next-steps, worth deciding once there are
            * real posts to test against. */
           (function () {
-            var url = "https://tadeleteentalk.pages.dev/article.html?post=" +
+            // Extensionless: Pages 308-redirects /article.html to /article, so
+            // that is the URL that actually serves this page. Must match the
+            // canonical the edge middleware writes.
+            var url = "https://tadeleteentalk.pages.dev/article?post=" +
                       encodeURIComponent(slug);
 
             function meta(sel, attr, key, value) {
