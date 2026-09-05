@@ -2,9 +2,19 @@
 
 **Status: partly built.** Sections 4 (YouTube thumbnails) and 5 (partial
 layouts) are implemented and tested. **The switch is off** — `index.html` has
-`ALLOW_PARTIAL_SECTIONS = false`, so the live site still shows the demo cards
-and behaves exactly as before. Flipping that one word is the point of no
-return and needs Fero's go-ahead, after real posts exist.
+`ALLOW_PARTIAL_SECTIONS = false`, so the live site shows the demo cards and
+behaves exactly as before. Flipping that one word is the point of no return
+and needs Fero's go-ahead, after real posts exist.
+
+**A bug worth remembering (found by Fero, fixed 2026-09-05).** The switch did
+not actually gate the trending grid. `bentoPlan` trimmed the slot array to
+match the number of posts, and `fillSection`'s all-or-nothing guard is
+`posts.length < slots.length` — with both arrays the same length that is never
+true, so the grid replaced the demo cards with whatever real posts existed,
+switch or no switch. Fero saw it immediately: the TRENDING NOW placeholders had
+vanished. **A guard that compares two things the caller controls is not a
+guard.** When partial rendering is off, `bentoPlan` now hands back the full
+slot list so the comparison means something again.
 
 Written 2026-09-05 at Fero's request. This document covers one system and
 nothing else: what happens between pressing **Publish** in the editor and the

@@ -1294,7 +1294,7 @@ button { font: inherit; }
        * whichever card happens to sit at index 0 -- a small one -- and give
        * the big block to the second-newest. Both wrong: the newest post
        * should always be the biggest thing on the page. */
-      function bentoPlan(posts) {
+      function bentoPlan(posts, allowPartial) {
         var n = Math.min(posts.length, BENTO_SLOTS.length);
 
         if (n === BENTO_SLOTS.length) {
@@ -1302,6 +1302,14 @@ button { font: inherit; }
           BENTO_BY_IMPORTANCE.forEach(function (slotIndex, rank) { ordered[slotIndex] = posts[rank]; });
           return { posts: ordered, slots: BENTO_SLOTS, partial: false };
         }
+
+        /* Not enough for the designed grid, and partial rendering is off.
+         * Hand back the FULL slot list so fillSection's all-or-nothing guard
+         * can still see it is short and decline, leaving the demo cards.
+         * Trimming the slots here is what defeated that guard once already:
+         * with both arrays the same length, "posts.length < slots.length" is
+         * never true and the section was replaced regardless of the switch. */
+        if (!allowPartial) return { posts: posts, slots: BENTO_SLOTS, partial: false };
 
         var slots = [], rows = [];
         for (var rank = 0; rank < n; rank++) {
@@ -1314,7 +1322,7 @@ button { font: inherit; }
       // Trending grid — newest published posts of any type.
       P.fetchPosts(client, { limit: BENTO_SLOTS.length }).then(function (posts) {
         var bento = document.querySelector("main.bento");
-        var plan  = bentoPlan(posts);
+        var plan  = bentoPlan(posts, ALLOW_PARTIAL_SECTIONS);
         // Only pack when the grid is genuinely short; a full grid keeps the
         // authored positions and renders exactly as designed.
         if (ALLOW_PARTIAL_SECTIONS) bento.classList.toggle("is-partial", plan.partial);
