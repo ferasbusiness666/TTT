@@ -5,6 +5,7 @@ layouts) are implemented and tested. **The switch is off** — `index.html` has
 `ALLOW_PARTIAL_SECTIONS = false`, so the live site still shows the demo cards
 and behaves exactly as before. Flipping that one word is the point of no
 return and needs Fero's go-ahead, after real posts exist.
+
 Written 2026-09-05 at Fero's request. This document covers one system and
 nothing else: what happens between pressing **Publish** in the editor and the
 story appearing in the right place on the site, with no one asking Claude to
