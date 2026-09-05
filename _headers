@@ -27,3 +27,37 @@
   Cross-Origin-Opener-Policy: same-origin
   Access-Control-Allow-Origin: https://tadeleteentalk.pages.dev
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://res.cloudinary.com; connect-src 'self' https://ruzsbwgwbneqyvbdmwdb.supabase.co https://api.cloudinary.com https://cloudflareinsights.com; frame-src https://www.youtube-nocookie.com; media-src 'self' https://res.cloudinary.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+
+# Staff screens: noindex as a header as well as a meta tag. The header
+# covers cases the meta can't (a non-HTML response, a crawler that reads
+# headers first) and costs nothing.
+/admin*
+  X-Robots-Tag: noindex, nofollow
+
+/editor*
+  X-Robots-Tag: noindex, nofollow
+
+/login*
+  X-Robots-Tag: noindex, nofollow
+
+# Caching. Cloudflare Pages defaults every response to
+# "public, max-age=0, must-revalidate", so a returning reader makes a
+# conditional request for the CSS, every JS file and every image on each
+# navigation -- a round trip per asset, on the mobile connections that
+# matter most here.
+#
+# These filenames are NOT content-hashed (no build step), so a long
+# max-age would serve stale code after a deploy. Five minutes fresh plus a
+# day of stale-while-revalidate kills the per-navigation round trips
+# within a session while keeping any change visible within minutes: the
+# browser serves the cached copy instantly and refreshes it in the
+# background. If the site ever gains hashed filenames, these can go to a
+# year with immutable.
+/assets/*
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+/images/*
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+/favicon.ico
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400

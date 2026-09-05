@@ -1,7 +1,7 @@
 # Next Steps
 
 ## The working list — do these one at a time, top to bottom
-Compiled 2026-08-19 from a full read of the docs, all seven pages and the live
+Compiled 2026-08-24 from a full read of the docs, all seven pages and the live
 database. This is the ordered queue; the sections further down hold the detail
 and the history. **M** = Claude can build it now, **F** = only Fero can do it,
 **?** = needs a decision before anything can be built.
@@ -26,31 +26,73 @@ and the history. **M** = Claude can build it now, **F** = only Fero can do it,
 | 16 | F | **Create the real staff accounts** in Supabase → Authentication → Users. Set `full_name` or the name shows as the email address. |
 | 17 | F | **Check the site on a real phone.** The mobile fixes were only ever verified in a simulated 390px browser. |
 | 18 | F | **Decide the newsletter-sending approach** — Resend, or send manually. "Deferred" is a valid answer; it doesn't block launch. |
-| 19 | ✅ | **Access rules re-confirmed** 2026-08-19 with the subscribe box wired. Anonymous callers can read published `posts`, `categories` and `post_media` and nothing else; **every table refuses a direct write**, including `subscribers`. The only public write path is the rate-limited `subscribe` RPC. |
+| 19 | ✅ | **Access rules re-confirmed** 2026-08-24 with the subscribe box wired. Anonymous callers can read published `posts`, `categories` and `post_media` and nothing else; **every table refuses a direct write**, including `subscribers`. The only public write path is the rate-limited `subscribe` RPC. |
 
 Nothing security-related is open. Everything above is features, content or polish.
 
 ## Cloudflare 2FA — Google 2FA done, Cloudflare's own declined for now
 Fero couldn't enable Cloudflare 2FA: he signs in with **Google SSO**, so the account has no password, and the change-password form asks for an old one that never existed. Cloudflare's SSO docs give the way round — *"If a user does not have a password, they can use the forgot password method on the login page to create one"* — then Profile → Authentication → Two-Factor Authentication → Set up.
 
-**Where it landed (2026-08-19): Fero enabled 2FA on the Google account and has declined Cloudflare's own for now.** That is a reasonable stopping point, not an outstanding task, and it should not be raised again unasked. While sign-in goes through Google, that Google account *is* the key to Cloudflare — so the factor that actually guards the login path he uses is in place. Cloudflare's own 2FA would add a second factor for someone who had already got into the Google account; the steps above are recorded for whenever he wants it.
+**Where it landed (2026-08-24): Fero enabled 2FA on the Google account and has declined Cloudflare's own for now.** That is a reasonable stopping point, not an outstanding task, and it should not be raised again unasked. While sign-in goes through Google, that Google account *is* the key to Cloudflare — so the factor that actually guards the login path he uses is in place. Cloudflare's own 2FA would add a second factor for someone who had already got into the Google account; the steps above are recorded for whenever he wants it.
 
-## Done — performance pass (2026-08-19), and what was deliberately left alone
-Measured first, on a 390px viewport with the CPU throttled 4x, then again after. **Payload 323KB → 294KB.**
+## Done — share previews rendered at the edge (2026-08-24)
+`article.html` sets its title, description and `og:*` from the post once JavaScript runs. Google renders JavaScript, so search was fine — but **social crawlers do not run JS**, so every shared link previewed with the site-level title, the generic description and the default cover, whichever story it pointed at. That quietly defeated the per-post metadata work for the sharing path.
 
-**Fixed:**
-- **`images/logo-badge.png`: 33KB → 4KB (88% smaller).** It was a 128px full-colour PNG for a badge displayed at 44px — the single most wasteful asset on the site. Now 96px (still crisp on a 2x screen) with a 128-colour palette. Compared side by side at display size: indistinguishable. A quantised PNG beat WebP here on both size *and* compatibility, so no format change was needed.
-- **Dropped Playfair Display weight 900 from the Google Fonts request** on all seven pages. Nothing in any stylesheet asks for `font-weight: 900` — it was being fetched for nothing. Confirmed against the Google Fonts API: 34 `@font-face` sources before, 30 after.
+`functions/_middleware.js` now rewrites those tags at the edge with `HTMLRewriter`, before the HTML leaves Cloudflare, so a shared link shows the actual story. It also adds the `og:url` and `canonical` the static HTML never had.
 
-**Already correct, checked rather than assumed:** card and gallery images already carry `loading="lazy"`, real `alt` text and Cloudinary's `f_auto,q_auto,w_*` sizing; `display=swap` is already on the font request; measured **CLS was 0**, because the media boxes reserve space with `aspect-ratio`.
+**It sits in front of every request on the site, so it is built to fail safe:**
+- anything that isn't `/article` or `/article.html` **with** a `?post=` returns immediately, untouched — the homepage, archive and staff screens never reach the rest of the file. Unit-tested across nine URL shapes.
+- the Supabase lookup has a **1.5s timeout** and every step is wrapped: a slow or failing lookup, missing env vars, a non-HTML response or malformed data all fall through to the original page. Worst case is exactly the behaviour before the file existed.
+- it reads with the **public key** and only published posts, so it is edge-side but not privileged.
+- `setAttribute` escapes for us, so a title containing quotes or angle brackets can't break out of the attribute.
 
-**Deliberately not done, with reasons:**
-- **supabase-js is 207KB — 70% of the page weight, and by far the biggest remaining lever.** Replacing it with plain `fetch()` calls on the public pages would remove nearly all of it, since those pages only do unauthenticated reads. It is also a real refactor of every public page's data layer, with real regression risk, in exchange for a page that is *already fast*: Cloudflare's own Web Analytics reports **LCP 100% "Good" and 124ms page load** from real visitors. Worth revisiting only if real-user numbers ever get worse.
-- **Making the Google Fonts stylesheet non-render-blocking** (`media="print"` + `onload`) would speed up first paint on a poor connection, but it trades that for a visible flash of fallback text on every load. That is a visual change for a site whose real-world load time is already 124ms, so it needs Fero's say-so rather than being slipped in.
+## Done — staff screens kept out of Google properly (2026-08-24)
+`robots.txt` disallowed `/admin`, `/editor` and `/login`, which **prevented the fix from working**: a disallowed page is never fetched, so Google could never see a `noindex` — and a blocked-but-linked URL can still be indexed as a bare link. `/login.html` is linked from the masthead *and* footer of every public page, so it is definitely discovered.
 
-**Test note for next time:** a first measurement showed a 13-second first paint. That was an artifact — Google Fonts is unreachable from the sandbox and the stylesheet blocks render, so the run was measuring a hung request, not the site. Abort font requests in the harness before trusting any timing number from it.
+Now: the three pages carry `<meta name="robots" content="noindex, nofollow">`, `_headers` sends `X-Robots-Tag: noindex, nofollow` for the same paths, and the `Disallow` lines are **removed** so the crawler can actually read the instruction. `/api/` stays disallowed — it answers POSTs with JSON and is never linked.
 
-## Done — editor draft backup (2026-08-19)
+## Done — performance pass (2026-08-24), corrected after review
+Measured on a 390px viewport with the CPU throttled 4x, before and after.
+
+**Images — this is where the whole saving came from. 557KB → 110KB across the set.**
+
+| file | before | after | why it was big |
+|---|---|---|---|
+| `og-cover.png` | 247KB | 50KB | fetched by a social crawler on every share |
+| `icon-512.png` | 230KB | 45KB | served as the schema.org Organization logo |
+| `apple-touch-icon.png` | 47KB | 9KB | home-screen icon |
+| `logo-badge.png` | 33KB | 5.6KB | shown at 44px |
+
+All re-encoded to a 128-colour palette at their original dimensions. Measured against the originals composited over the page background: mean channel delta 1.4–2.6 out of 255.
+
+**Two corrections to what an earlier version of this section claimed:**
+- It called the badge *"the single most wasteful asset on the site"*. **Wrong by a factor of seven** — `og-cover.png` (247KB) and `icon-512.png` (230KB) were both far larger, and the superlative would have stopped anyone re-checking the directory. They are fixed now.
+- The badge was first re-encoded at **96px**, and that was a mistake. The box is 44 CSS px, which is **132 device pixels on a 3x phone** — so a 96px source was being upscaled and softened on exactly the devices most readers use. The saving came from the palette, not the resize. It is back to 128px, still 83% smaller.
+
+**Font weights: the earlier claim here was wrong and is worth correcting properly.** Dropping Playfair `0,900` was recorded as bytes saved and folded into the headline number. **It saved zero bytes.** A browser only downloads a font file when a rendered glyph matches that `@font-face` — nothing ever resolved to weight 900, so those files were never being fetched. The whole 29KB of the original measurement was the badge.
+
+Measured which combinations are actually applied (computed styles across index, article, category, login, 404):
+
+```
+Bebas Neue        400 normal, 700 normal
+DM Sans           400 normal, 400 italic, 500, 600, 700
+Playfair Display  400 italic, 600 italic, 700 normal, 800 normal
+```
+
+So `0,400`, `0,600` and `1,500` also go unmatched. **Deliberately not trimming them:** the saving is zero bytes, the only gain is a few hundred bytes of Google's CSS, and getting it wrong on a page not covered by that sample (admin, editor) means synthesised faux-bold instead of a real weight. Not a payload lever — do not treat it as one.
+
+**Caching — the cheapest real lever, and it had been missed entirely.** Cloudflare Pages defaults everything to `public, max-age=0, must-revalidate`, confirmed against the live site, so every returning reader made a conditional request for the CSS, each JS file and each image on every navigation. `_headers` now gives `/assets/*`, `/images/*` and the favicon `max-age=300, stale-while-revalidate=86400`. Filenames are not content-hashed (no build step), so a long max-age would serve stale code after a deploy; five minutes fresh plus a day of background revalidation removes the per-navigation round trips without that risk. **If the site ever gains hashed filenames, this can go to a year with `immutable`.**
+
+**Already correct, checked rather than assumed:** images carry `loading="lazy"`, real `alt` text and Cloudinary `f_auto,q_auto,w_*` sizing; `display=swap` is set; measured **CLS 0**, because media boxes reserve space with `aspect-ratio`.
+
+**Still not done, deliberately:**
+- **supabase-js is 207KB, ~70% of page weight** — the biggest remaining lever. Removing it means rewriting the data layer of every public page for a site whose real users already see LCP 100% "Good" at 124ms.
+- **`index.html` inlines a 36KB copy of the design system** instead of linking `assets/ttt.css`, and hand-writes its own masthead, footer and search JS. That is both a payload cost larger than everything fixed above *and* the reason two separate bugs (the mobile header, the footer social links) hit the homepage only. Merging it is a real refactor with real risk of visual drift, so it needs Fero's go-ahead rather than being done quietly.
+- **Making the font stylesheet non-render-blocking** — helps a poor connection, costs a visible flash of fallback text on every load. A visual change, so it needs asking.
+
+**Test note:** a first measurement showed a 13-second first paint. Artifact — Google Fonts is unreachable from the sandbox and its stylesheet blocks render, so the run was timing a hung request. Abort font requests in the harness before trusting any timing from it.
+
+## Done — editor draft backup (2026-08-24)
 A browser that died mid-post used to take the whole post with it — the worst thing this editor could do to someone writing a long piece. Everything typed is now mirrored into `localStorage` a second after you stop typing, keyed by post id (or `new`), and offered back the next time that post is opened.
 
 **It only offers a draft back when that is genuinely the right thing:** the backup must differ from what is on screen, and for an existing post it must be **newer than the copy in the database**. Otherwise restoring would quietly undo a save made from another device, which is worse than the crash it protects against. The backup is deleted the moment a real save succeeds, and a brand-new post's `new` key is cleared once it has a real id, so it can't reappear in the next blank editor.
@@ -59,7 +101,7 @@ A browser that died mid-post used to take the whole post with it — the worst t
 
 Verified end to end in a real browser: typed a post, closed the tab without saving, reopened — the bar appeared and restored title and body exactly. Discard clears the backup and it does not come back. A fresh editor with no backup shows no bar at all.
 
-## Done — indexing readiness (2026-08-19)
+## Done — indexing readiness (2026-08-24)
 Everything that could be prepared for Google *before* there are posts to index:
 - **Per-post metadata on `article.html`.** Every article was serving the site-level title and description, so all of them looked identical to search engines and link previews. Title, `description`, `og:*`, `twitter:*` and canonical are now built from the real post.
 - **`NewsArticle` structured data** per post (headline, author, publisher, datePublished, image), and **`Organization`** structured data on the homepage — both were asked for in `08-seo and technical checklist.md` and neither existed.
@@ -72,7 +114,7 @@ Everything that could be prepared for Google *before* there are posts to index:
 ## BLOCKER before indexing — sitemap.xml must be regenerated
 `sitemap.xml` is hand-written and lists only the static pages. **Do not submit it to Google until it lists the real published posts**, or Google gets a map that doesn't match the site — which is worse than submitting nothing.
 
-**Sequencing agreed with Fero 2026-08-19: wait until there are real posts, then build it.** Writing the generator against an empty `posts` table would mean shipping something that can't be tested on real data — and the shape of the output (which posts, what `lastmod`, whether drafts are excluded) is easier to get right with something actually in the table. Claude picks this up once Fero has published; it comes before Search Console verification, not after.
+**Sequencing agreed with Fero 2026-08-24: wait until there are real posts, then build it.** Writing the generator against an empty `posts` table would mean shipping something that can't be tested on real data — and the shape of the output (which posts, what `lastmod`, whether drafts are excluded) is easier to get right with something actually in the table. Claude picks this up once Fero has published; it comes before Search Console verification, not after.
 
 ## Just before launch — Google Search Console
 Fero wants Google crawling the site. Google verifies ownership with **one of** a `<meta name="google-site-verification" content="…">` tag in `<head>`, or an HTML file dropped at the site root. Fero will send whichever Google gives him and Claude puts it in the right place — the meta tag belongs in the `<head>` of `index.html` (and only there; Google checks the homepage).
@@ -81,14 +123,14 @@ Worth doing in the same sitting:
 - `sitemap.xml` is currently **static and hand-written**. Before submitting it, it should list the real published posts, or Google gets a sitemap that doesn't match the site. Generating it needs a decision — a Pages Function that renders it from `posts`, or regenerating it by hand at launch.
 - `robots.txt` already disallows `/admin`, `/editor`, `/login` and `/api/`, so that side is ready.
 
-## Done — visitor analytics (Cloudflare Web Analytics, 2026-08-19)
+## Done — visitor analytics (Cloudflare Web Analytics, 2026-08-24)
 Free, unlimited, cookieless, no consent banner needed. Reports page views, unique visitors, referrers, countries, top pages and Core Web Vitals.
 
 **Automatic injection IS active, and no snippet belongs in the repo.** Cloudflare injects the beacon at the edge on every page of the site — verified in the served HTML, including the staff pages, which contain no beacon in the source. The injected tag carries site token `bde6e2861a064d2980f1caddf6772d22`.
 
 **A wrong turn worth recording, because the reasoning sounded right.** Reading Cloudflare's docs on "sites proxied through Cloudflare", Claude concluded that automatic injection can't work for a `pages.dev` hostname (no zone, same reason Bot Fight Mode is unavailable) and added the manual snippet to the four public pages. That was wrong: **Cloudflare Pages has its own Web Analytics integration that injects for `*.pages.dev` regardless of zones.** The result was two beacons per page with two different tokens — and Cloudflare's own FAQ says only one snippet per page is used. The manual snippet has been removed. **Check what the server actually serves before reasoning from docs about what it must be doing.**
 
-**Likely why the dashboard looked empty before today:** the auto-injected beacon loads from `static.cloudflareinsights.com` and reports to `cloudflareinsights.com`. Neither was in our CSP until 2026-08-19, so the browser would have blocked it. Those entries are in `_headers` now and must stay — **removing them would silently switch analytics off again.**
+**Likely why the dashboard looked empty before today:** the auto-injected beacon loads from `static.cloudflareinsights.com` and reports to `cloudflareinsights.com`. Neither was in our CSP until 2026-08-24, so the browser would have blocked it. Those entries are in `_headers` now and must stay — **removing them would silently switch analytics off again.**
 
 **Housekeeping for Fero:** the Web Analytics dashboard now has a second, unused site carrying token `7e1be1b0c3704050b90d401991dcef86`, created while setting this up manually. Delete it so there's one site and no confusion about which numbers are real.
 
@@ -96,15 +138,15 @@ Free, unlimited, cookieless, no consent banner needed. Reports page views, uniqu
 - **Ad blockers block the beacon** — uBlock, Brave, DuckDuckGo and friends all do. If Fero browses with one, his own visits won't appear. Test in a clean browser before concluding it's broken.
 - **Data is unsampled for 7 days**, then aggregated to roughly 10% for long-term storage. Six months of history available.
 
-## Later — Cloudflare Observability shows no traffic (2026-08-19)
+## Later — Cloudflare Observability shows no traffic (2026-08-24)
 Fero noticed the Observability tab reporting zero traffic even though he and the tests have been hitting the site. **This is expected, not a bug:** that tab reports on **Workers/Functions invocations**, and TTT is static files plus two `/api/*` Functions. Requests for `index.html`, the CSS, the images — the actual traffic — never invoke a Worker, so they are correctly absent. Only `/api/sign-upload` and `/api/delete-image` calls would ever appear there.
 
 For real visitor numbers the tool is **Cloudflare Web Analytics** (free, privacy-preserving, no cookies). One catch to handle when we do it: it injects a beacon from `static.cloudflareinsights.com`, so `_headers` needs that host added to `script-src` and `connect-src`. Small, but it must be done in the same change or the CSP silently blocks the beacon and the tab stays empty — which would look exactly like the current symptom.
 
-## Done — newsletter rate limiting (2026-08-19)
+## Done — newsletter rate limiting (2026-08-24)
 Built in the database rather than as a Pages Function; see `04-database-schema.md`. 30/IP/hour, 100/IP/day, 1000 and 3000 site-wide; anon INSERT revoked so the `subscribe` RPC is the only way in. (The first numbers were far too low — they treated one IP as one person, which breaks on school wifi and mobile CGNAT. Raised the same day.) **Turnstile is still the upgrade** if a determined attacker with a proxy pool ever becomes a real problem — per-IP limiting doesn't stop that, the site-wide cap only bounds it.
 
-## Later — error + attack reporting to Telegram (decided 2026-08-19, not started)
+## Later — error + attack reporting to Telegram (decided 2026-08-24, not started)
 Parked at Fero's request; the decision is made, the build is not. Rationale for building rather than buying is in `02-tech-stack-and-decisions.md`.
 
 **What to build (small):**
@@ -117,7 +159,7 @@ Parked at Fero's request; the decision is made, the build is not. Rationale for 
 
 **What this will NOT do, so nobody expects it to:** it cannot see attacks against Supabase. Anyone with the public key can hit `ruzsbwgwbneqyvbdmwdb.supabase.co` directly — the site never loads and none of our code runs. No static site can watch that; the defence there is RLS, which is already audited. Likewise SQL injection is not a live risk (PostgREST parameterises everything; nothing concatenates SQL), and XSS is already handled by the sanitiser plus the CSP. A homemade detector catches noisy scanners and genuine client-side breakage — not a competent attacker.
 
-## Newly found 2026-08-19 (were not tracked anywhere)
+## Newly found 2026-08-24 (were not tracked anywhere)
 - **There is no About page.** The footer's ABOUT link is `href="#"`. The site has exactly seven pages: `index`, `article`, `category`, `login`, `admin`, `editor`, `404`. Either an About page gets written or the link goes.
 - **"Request a contributor account →"** on `login.html` is a dead link, and no contributor-application flow exists or is planned. It reads like a promise the site can't keep.
 - **Invented numbers are live.** `VOL. 03 · NOV 2025` (masthead + footer), `40+ teen contributors` (login screen), `VOL. 03 — The Suburbia Issue` (category page). These came from the original mockup and have never been checked against reality — worth fixing before anyone outside the team sees the site.
@@ -144,7 +186,7 @@ Parked at Fero's request; the decision is made, the build is not. Rationale for 
 - [ ] Create the real staff accounts in Supabase
 - [ ] Wire up the subscribe box to the `subscribers` table
 - [x] Show the **real** signed-in user's name (admin sidebar + avatar initials, editor byline) instead of the hardcoded `Liya G. Tadele` placeholder — reads `full_name` from `profiles` via `tttAuth.currentProfile()`. (Value falls back to email until a display name is set — see `05-known-issues.md`.)
-- [x] Confirm the Founders **section content** shows exactly Liya Tadele and Ije Ezedani — done 2026-08-19. It had been showing four people, three of whom don't exist.
+- [x] Confirm the Founders **section content** shows exactly Liya Tadele and Ije Ezedani — done 2026-08-24. It had been showing four people, three of whom don't exist.
 - [x] Add the real favicon — generated from `images/preview.png` (the circular TTT logo) into `favicon.ico` + 32px/180px/512px PNGs, linked from **all six pages**. Also produced `images/og-cover.png` (1200×630, logo on the brand cream) and wired `og:`/`twitter:` share tags + meta descriptions on the three public pages.
 
 ## Security hardening (from the stress test — see `09-security-stress-test.md`)
@@ -157,12 +199,12 @@ Ordered by value-for-effort, not by the report's numbering.
 - [x] **Narrow the public view of `profiles`** (#4) — two parts, both done. Column-level grants stop anon reading `role`/`created_at`; migration `stop_anon_enumerating_profiles` then replaced the `using (true)` row policy so anon can only read the profile of someone who has a **published** post. Before that, the whole staff list (names + auth UUIDs) was dumpable with the public key. Verified against the live API.
 - [x] **Check `role` in `tttAuth.guard()`** (#14) — today any authenticated account passes the admin/editor guard. Only one account exists, so no exposure yet, but it should verify staff.
 - [x] **Real 404 + `robots.txt` + `sitemap.xml`** (#10) — every unknown path currently returns the homepage with HTTP 200. `08-seo and technical checklist.md` already has the content ready to use.
-- [x] **Sign Cloudinary uploads for signed-in staff** (#5) — **closed 2026-08-19.** `/api/sign-upload` signs uploads for authenticated staff and the editor prefers it; Fero then switched the `ttt-posts` preset to **Signed** in the Cloudinary dashboard and confirmed a photo still uploads. Anonymous uploads to the account are now rejected. Note the unsigned fallback in `assets/ttt-upload.js` is dead code from here on — if the Pages Function ever fails, uploads fail rather than silently going unsigned, which is the behaviour we want.
+- [x] **Sign Cloudinary uploads for signed-in staff** (#5) — **closed 2026-08-24.** `/api/sign-upload` signs uploads for authenticated staff and the editor prefers it; Fero then switched the `ttt-posts` preset to **Signed** in the Cloudinary dashboard and confirmed a photo still uploads. Anonymous uploads to the account are now rejected. Note the unsigned fallback in `assets/ttt-upload.js` is dead code from here on — if the Pages Function ever fails, uploads fail rather than silently going unsigned, which is the behaviour we want.
 - [x] **Remove the fake admin stats** (#13) — the views card is now a real PHOTOS count — `VIEWS · 30D 12.4k` and "↑ 4 this month" are hardcoded and never updated.
 - [x] **Per-slug "story not found" state** (#12) — instead of silently showing the demo essay under someone else's headline.
 - [~] Low-priority tidy-ups (#15–#19) — dead `href="#"` links, login `autocomplete`, the decorative "Remember me", the no-op admin search and LOAD MORE button. **Done:** footer Instagram/TikTok/YouTube now point at the documented @tadeleteentalks accounts, the admin search box filters the list, the article share buttons copy the link (or open the native share sheet), and the login inputs carry `autocomplete`. **Still open:** the Discord button has no invite URL on record, "Forgot password?" needs a password-reset page to land on before it can be wired, and "Remember me" is still decorative.
 
-## Fero's list (raised 2026-08-19)
+## Fero's list (raised 2026-08-24)
 Recorded verbatim in intent; several need a decision from Fero before they can be built (marked **ASK**).
 
 - [x] **Admin desk cleanup** — **Media**, **Comments** and **Settings** all removed from the sidebar. All three were `href="#"` placeholders inherited from the mockup with nothing behind them: comments aren't in v1, media lives in Cloudinary, and there's nothing settings could configure that isn't in Supabase or Cloudinary. Removing Settings also retired its malformed gear SVG, so the broken-icon fix is moot.
@@ -175,7 +217,7 @@ Recorded verbatim in intent; several need a decision from Fero before they can b
 ## Before telling anyone it's ready — full security check
 - [x] Row Level Security is ON for every table — audited 2026-08-13, all 5 tables
 - [x] Every policy matches the plan: public read-only, staff write — audited; grants also tightened to least privilege (migration `harden_table_grants_least_privilege`)
-- [x] Nothing can be called without logging in — **re-confirmed 2026-08-19** now that posts and subscribe are wired. Probed every table as an anonymous caller with the public key: reads succeed only on published `posts`, `categories` and `post_media`; `profiles` (via `select=*`), `subscribers` and `subscribe_attempts` all return `42501`. **Every table refuses a direct INSERT**, `subscribers` included — the sole public write path is `rpc/subscribe`, which validates and rate-limits before writing.
+- [x] Nothing can be called without logging in — **re-confirmed 2026-08-24** now that posts and subscribe are wired. Probed every table as an anonymous caller with the public key: reads succeed only on published `posts`, `categories` and `post_media`; `profiles` (via `select=*`), `subscribers` and `subscribe_attempts` all return `42501`. **Every table refuses a direct INSERT**, `subscribers` included — the sole public write path is `rpc/subscribe`, which validates and rate-limits before writing.
 - [x] **Public sign-up is switched OFF** in Supabase's Auth settings — disabled by Fero 2026-08-13 and verified (the signup API now returns "Signups not allowed for this instance").
 - [~] Leaked-password protection (HaveIBeenPwned) — **Pro-plan only, unavailable on the free plan.** Deferred by decision: accounts are admin-created for a small staff and use strong passwords. Revisit only if the project ever moves to Pro. See `05-known-issues.md`.
 - [x] No `service_role` or Cloudinary secret key anywhere in the committed code — verified (only the public publishable key is in client code)

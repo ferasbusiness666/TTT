@@ -1,8 +1,15 @@
 /* =====================================================================
    TADELE TEEN TALKS — DESIGN SYSTEM  (ttt.css)
    =====================================================================
-   THE single source of truth for the whole platform. Every page links
-   this one file, so the visual language can never drift between pages.
+   The design system for the platform — tokens plus every component.
+
+   ONE IMPORTANT EXCEPTION, and it has bitten twice: index.html does NOT
+   link this file. The homepage carries its own inline copy of these
+   tokens and rules, and hand-writes its own masthead, footer and search
+   JS. That is why the mobile-header bug and the dead footer social links
+   both hit the homepage alone while every other page was fine. Change
+   anything here and check index.html separately, every time, until the
+   two are merged (tracked in 07-next-steps.md).
 
    HOW THIS CODEBASE IS ORGANISED (read README.md for the full map):
      assets/ttt.css .... this file — tokens + every component

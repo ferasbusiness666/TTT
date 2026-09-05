@@ -1,13 +1,15 @@
 User-agent: *
 Allow: /
 
-# No reason for "TTT admin login" to be findable on Google.
-Disallow: /admin
-Disallow: /admin.html
-Disallow: /editor
-Disallow: /editor.html
-Disallow: /login
-Disallow: /login.html
+# The staff screens carry <meta name="robots" content="noindex, nofollow">
+# and an X-Robots-Tag header. They are deliberately NOT disallowed here:
+# a disallowed page is never fetched, so Google would never see the noindex,
+# and a blocked-but-linked URL can still end up indexed as a bare link.
+# LOGIN is linked from the masthead and footer of every public page, so it
+# is definitely discovered. Letting the crawler read the page and be told
+# "noindex" is what actually keeps it out of results.
+
+# These return JSON to POST requests only and are never linked.
 Disallow: /api/
 
 Sitemap: https://tadeleteentalk.pages.dev/sitemap.xml
