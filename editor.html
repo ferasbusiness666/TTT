@@ -322,6 +322,34 @@
     });
     body.addEventListener("input", dirty);
 
+    /* ---------- one Ctrl+Z per action ----------
+     * A few edits need the browser to run several of its own commands in a
+     * row (turning bullets off, for one). Each command is its own undo step,
+     * so one Ctrl+Z would leave the edit half undone. Those edits record how
+     * many steps they took, and Ctrl+Z (or Ctrl+Shift+Z / Ctrl+Y to redo)
+     * straight afterwards takes all of them together. Anything else typed or
+     * undone in between clears the record, so normal undo is untouched. */
+    var undoGroup = 0, redoGroup = 0, replaying = false;
+    function groupSteps(n) { undoGroup = n; redoGroup = 0; }
+    body.addEventListener("input", function () {
+      if (!replaying) { undoGroup = 0; redoGroup = 0; }
+    });
+    body.addEventListener("keydown", function (e) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      var k = (e.key || "").toLowerCase();
+      var isUndo = k === "z" && !e.shiftKey;
+      var isRedo = (k === "z" && e.shiftKey) || (k === "y" && !e.shiftKey);
+      if (!isUndo && !isRedo) return;
+      var n = isUndo ? undoGroup : redoGroup;
+      undoGroup = 0; redoGroup = 0;
+      if (n < 2) return;                            // a normal, single step
+      e.preventDefault();
+      replaying = true;
+      for (var i = 0; i < n; i++) document.execCommand(isUndo ? "undo" : "redo");
+      replaying = false;
+      if (isUndo) redoGroup = n; else undoGroup = n;
+    });
+
     /* ---------- quotes: Enter leaves, Backspace at the start un-quotes ----------
      * Left to the browser, every Enter inside a <blockquote> made another
      * quote -- even Enter on an empty line -- so there was no way out with
@@ -426,7 +454,7 @@
         addMenu.classList.remove("open");
         if (kind === "image") { document.getElementById("body-input").click(); }
         else if (kind === "quote") { insertQuote(); }
-        else if (kind === "divider") { insertBlock('<hr><p><br></p>'); }
+        else if (kind === "divider") { insertDivider(); }
       });
     });
 
@@ -450,6 +478,118 @@
         placeCaret((cur && cur.previousElementSibling) || ref, true);
       }
       document.execCommand("formatBlock", false, "blockquote");
+      dirty(); updateAddMenu();
+    }
+
+    /* "+ -> Divider" used to insert after the empty line you clicked +
+     * on, leaving that line behind as a blank gap above the divider. Now the
+     * empty line itself is replaced by the divider plus a fresh line to keep
+     * typing on -- one undoable step, through the browser's own insert. */
+    function insertDivider() {
+      var ref = savedBlock || currentBlock();
+      if (!ref || ref.parentNode !== body) { ensureParagraph(); ref = body.lastElementChild; }
+      placeCaret(ref, true);
+      document.execCommand("insertHTML", false, "<hr><p><br></p>");
+      dirty(); updateAddMenu();
+    }
+
+    /* ---------- bullet lists ----------
+     * The browser's own list command, in Chrome, wraps the new list INSIDE
+     * the paragraph it came from (<p><ul>…</ul></p>), which isn't valid HTML;
+     * the published page then splits it apart and leaves stray blank gaps.
+     * So turning lines INTO a list is done here: the selected paragraphs are
+     * rebuilt as one clean top-level list and handed to insertHTML, which
+     * keeps it in the undo history.
+     *
+     * Turning bullets OFF uses the browser's own command, which splits the
+     * list around the chosen items correctly but leaves them as loose text
+     * with no paragraph around them; each of those lines is then made a
+     * paragraph, one at a time (all at once merges them into one). It takes
+     * several steps, so they're grouped for Ctrl+Z (see "one Ctrl+Z per
+     * action" above). */
+    function topBlocksIn(range) {
+      return Array.prototype.filter.call(body.children, function (b) {
+        return range.intersectsNode(b);
+      });
+    }
+
+    function selectBlocks(first, last) {
+      var r = document.createRange();
+      r.setStartBefore(first);
+      r.setEndAfter(last);
+      var sel = getSelection();
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+
+    function itemHTML(el) {
+      return (el.textContent.trim() !== "" || el.querySelector("img")) ? el.innerHTML : "<br>";
+    }
+
+    /* The first bit of loose text (not inside any paragraph, heading, list…)
+     * between two points in the body -- where a list used to be. */
+    var BLOCK_TAGS = /^(P|H[1-6]|UL|OL|BLOCKQUOTE|FIGURE|HR|DIV)$/;
+    function firstLooseNode(before, after) {
+      var n = before && before.parentNode === body ? before.nextSibling : body.firstChild;
+      for (; n && n !== after; n = n.nextSibling) {
+        if (n.nodeType === 1 ? !BLOCK_TAGS.test(n.tagName) : (n.nodeType === 3 && n.textContent.trim() !== "")) return n;
+      }
+      return null;
+    }
+
+    function toggleList() {
+      var sel = getSelection();
+      if (!sel.rangeCount) return;
+      var range = sel.getRangeAt(0);
+      var blocks = topBlocksIn(range);
+      if (!blocks.length) return;
+
+      // Photos and dividers can't become list items; don't swallow them.
+      if (blocks.some(function (b) { return b.tagName === "FIGURE" || b.tagName === "HR"; })) {
+        toast("Lists can only be made from lines of text");
+        return;
+      }
+
+      if (blocks.length === 1 && blocks[0].tagName === "UL") {
+        // Off: the chosen items become paragraphs; the rest stay listed.
+        var before = blocks[0].previousElementSibling, after = blocks[0].nextElementSibling;
+        var wasCollapsed = range.collapsed;
+        document.execCommand("insertUnorderedList");
+        var steps = 1, made = [], loose;
+        while (steps < 200 && (loose = firstLooseNode(before, after))) {
+          var c = document.createRange();
+          if (loose.nodeType === 3) c.setStart(loose, 0); else c.setStartBefore(loose);
+          c.collapse(true);
+          sel.removeAllRanges(); sel.addRange(c);
+          document.execCommand("formatBlock", false, "p");
+          steps++;
+          var cur = currentBlock();
+          if (cur && made.indexOf(cur) === -1) made.push(cur);
+        }
+        groupSteps(steps);
+        if (made.length) {
+          // Leave the same lines selected (or the caret at the end of one).
+          var r = document.createRange();
+          r.selectNodeContents(made[0]);
+          r.setEnd(made[made.length - 1], made[made.length - 1].childNodes.length);
+          if (wasCollapsed) r.collapse(false);
+          sel.removeAllRanges(); sel.addRange(r);
+        }
+      } else {
+        // On: every selected line becomes an item of one list (existing
+        // list items in the selection are kept as they are).
+        var index = Array.prototype.indexOf.call(body.children, blocks[0]);
+        var html = "<ul>" + blocks.map(function (b) {
+          if (b.tagName === "UL" || b.tagName === "OL") {
+            return Array.prototype.map.call(b.children, function (li) { return li.outerHTML; }).join("");
+          }
+          return "<li>" + itemHTML(b) + "</li>";
+        }).join("") + "</ul>";
+        selectBlocks(blocks[0], blocks[blocks.length - 1]);
+        document.execCommand("insertHTML", false, html);
+        var landed = body.children[index];
+        if (landed) placeCaret(landed.tagName === "UL" ? landed.lastElementChild : landed, false);
+      }
       dirty(); updateAddMenu();
     }
 
@@ -542,6 +682,8 @@
           var cur = currentBlock();
           var same = cur && cur.tagName && cur.tagName.toLowerCase() === block;
           document.execCommand("formatBlock", false, same ? "p" : block);
+        } else if (cmd === "insertUnorderedList") {
+          toggleList();
         } else if (cmd === "createLink") {
           openLinkPop();
           return;                       // the dialog finishes the job
