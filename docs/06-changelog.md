@@ -205,3 +205,10 @@ Fero re-ran the stress test and pulled Cloudflare's Security Insights scan. Both
 - **Left Fero's own `feroomon10400@gmail.com` signup in `subscribers`** — that's a real subscription from testing the form, not test data.
 - **Bot Fight Mode isn't findable because it isn't available.** It's a per-zone setting, and `pages.dev` / `workers.dev` are Cloudflare's domains, not zones Fero owns. It unlocks with a custom domain. Not a misconfiguration.
 - **The one item genuinely needing Fero: enable 2FA on the Cloudflare account.** It holds `CLOUDINARY_API_SECRET` and controls deploys.
+
+## Staff account for Liya (2026-10-09)
+Liya Tadele's account was created in the Supabase dashboard. Checked rather than assumed: the email sign-in identity exists, a password is set, the account isn't banned or deleted, and `role = staff`, which passes the editor guard. One fix was needed — the profile's `full_name` had fallen back to the email address, which would have printed publicly as the byline on Liya's posts. Set to **Liya Tadele**, matching the founders section and `01-project-overview.md`.
+
+Nothing was created through code: auth users can only be made with the `service_role` key (never in this repo) or the dashboard, and inserting into `auth.users` by SQL is unsupported and fragile.
+
+**Repo housekeeping, same day.** The working checkout turned out to be an old snapshot on a branch (`claude/affectionate-bell-1fg8ge`) that shared no history with `main`. That branch was rebuilt on top of `main`; its one extra commit (the impeccable skill install) was dropped at Fero's request. The old tip is recoverable only locally, if at all.
