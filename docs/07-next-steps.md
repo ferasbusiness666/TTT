@@ -34,7 +34,7 @@ Nothing security-related is open. Everything above is features, content or polis
 Quotes (red “ instead of the bar, Enter leaves the quote) plus all eight audit findings: clean pasting, UNPUBLISH/UPDATE on live posts, the phone + button and save status, clean bullet lists, the divider gap, no empty publishes, the leave-page warning, and TOPIC wording. Details are in `06-changelog.md`.
 
 **Found while doing it, not fixed (outside what was asked):**
-- **Photo captions publish their placeholder.** A photo added with + (or pasted) gets a caption that literally reads "Add a caption (optional)". If the writer doesn't replace it, those words appear under the photo on the published article. The fix is a real placeholder that only shows while the caption is empty, plus dropping the default text on save.
+- ~~**Photo captions publish their placeholder.**~~ **Fixed the same day**, see `06-changelog.md`.
 - **The byline flashes "Liya G. Tadele" before the real name loads.** It's a leftover from the mockup in `editor.html`'s static HTML. The page stays hidden until sign-in is checked, so this is rarely visible.
 
 ## Cloudflare 2FA — Google 2FA done, Cloudflare's own declined for now

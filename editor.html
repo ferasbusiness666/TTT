@@ -619,6 +619,25 @@
       dirty(); updateAddMenu();
     }
 
+    /* ---------- photo captions ----------
+     * A new photo's caption used to be the actual words "Add a caption
+     * (optional)", so a caption nobody filled in was published under the
+     * photo. The caption now starts empty and the editor only *shows* that
+     * hint (CSS, while it's empty). Anything saved goes through cleanCaptions,
+     * which also empties the old hint text in drafts made before this fix;
+     * the article page hides a caption with nothing in it. */
+    var CAPTION_HINT = "Add a caption (optional)";
+    function cleanCaptions(root) {
+      Array.prototype.forEach.call(root.querySelectorAll("figcaption"), function (c) {
+        var t = c.textContent.trim();
+        if (t === "" || t === CAPTION_HINT) c.innerHTML = "";
+      });
+      return root;
+    }
+    function bodyHTMLForSave() {
+      return cleanCaptions(body.cloneNode(true)).innerHTML;
+    }
+
     /* ---------- body image upload (manual) ---------- */
     var bodyInput = document.getElementById("body-input");
     bodyInput.addEventListener("change", function () {
@@ -633,7 +652,7 @@
       // data URLs inside the post HTML, which bloated every row in the
       // database and slowed the article page down; they're hosted now.
       var fig = document.createElement("figure");
-      fig.innerHTML = '<img alt=""><figcaption>Add a caption (optional)</figcaption>';
+      fig.innerHTML = '<img alt=""><figcaption></figcaption>';
       var img = fig.querySelector("img");
       var reader = new FileReader();
       reader.onload = function (e) { img.src = e.target.result; };
@@ -649,10 +668,10 @@
       updateAddMenu();
 
       uploading++;
-      img.style.opacity = "0.5";   // reads as "still working"
+      img.setAttribute("style", "opacity: 0.5");   // reads as "still working"
       window.tttUpload.upload(f).then(function (res) {
         img.src = res.url;
-        img.style.opacity = "";
+        img.removeAttribute("style");   // via .style it left an empty style="" behind
         uploading--;
         dirty();
       }).catch(function (err) {
@@ -674,7 +693,7 @@
      * add them with +. */
     var PASTE_BLOCK = /^(P|DIV|H[1-6]|BLOCKQUOTE|LI|TABLE|THEAD|TBODY|TFOOT|TR|TD|TH|CAPTION|SECTION|ARTICLE|HEADER|FOOTER|MAIN|ASIDE|NAV|ADDRESS|CENTER|DL|DT|DD|FIGCAPTION|PRE)$/;
     var PASTE_SKIP = /^(SCRIPT|STYLE|META|LINK|TITLE|HEAD|NOSCRIPT|TEMPLATE|IFRAME|OBJECT|EMBED|SVG|MATH|BUTTON|INPUT|SELECT|TEXTAREA|VIDEO|AUDIO|CANVAS)$/;
-    var CAPTION_HTML = "<figcaption>Add a caption (optional)</figcaption>";
+    var CAPTION_HTML = "<figcaption></figcaption>";
     var pasteSeq = 0;
 
     function escText(s) {
@@ -911,7 +930,7 @@
         var img = body.querySelector('img[data-paste="' + it.id + '"]');
         if (!img) { URL.revokeObjectURL(it.preview); return; }
         uploading++;
-        img.style.opacity = "0.5";                      // reads as "still working"
+        img.setAttribute("style", "opacity: 0.5");      // reads as "still working"
         window.tttUpload.upload(it.file).then(function (res) {
           img.src = res.url;
           img.removeAttribute("data-paste");
@@ -1145,7 +1164,7 @@
       return {
         title:    document.getElementById("title").value,
         deck:     document.getElementById("deck").value,
-        body:     document.getElementById("body").innerHTML,
+        body:     bodyHTMLForSave(),
         type:     document.getElementById("cat-select").value,
         category: (document.getElementById("category-select") || {}).value || "",
         cover:    coverUrl,
@@ -1301,7 +1320,7 @@
       var fields = {
         title: title,
         excerpt: document.getElementById("deck").value.trim() || null,
-        body: document.getElementById("body").innerHTML,
+        body: bodyHTMLForSave(),
         post_type: SELECT_TO_TYPE[document.getElementById("cat-select").value] || "article",
         category_id: (catEl && catEl.value) ? parseInt(catEl.value, 10) : null,
         cover_image_url: coverUrl,
@@ -1429,6 +1448,7 @@
         document.getElementById("title").value = d.title || "";
         document.getElementById("deck").value  = d.deck || "";
         document.getElementById("body").innerHTML = d.body || "";
+        cleanCaptions(document.getElementById("body"));
         if (d.type) document.getElementById("cat-select").value = d.type;
         var catSel = document.getElementById("category-select");
         if (catSel && d.category !== undefined) catSel.value = d.category;
@@ -1467,6 +1487,7 @@
         document.getElementById("title").value = p.title || "";
         document.getElementById("deck").value = p.excerpt || "";
         document.getElementById("body").innerHTML = p.body || "";
+        cleanCaptions(document.getElementById("body"));
         document.getElementById("cat-select").value = TYPE_TO_SELECT[p.post_type] || "articles";
         document.getElementById("category-select").value = p.category_id ? String(p.category_id) : "";
         updateMetaline();

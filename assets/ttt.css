@@ -800,6 +800,7 @@ button { font: inherit; }
 .prose img { border: var(--line); border-radius: var(--radius-card); width: 100%; }
 .prose figure { margin-top: 26px; }
 .prose figcaption { font-size: 13px; color: var(--ttt-muted); margin-top: 8px; text-align: center; }
+.prose figcaption:empty { display: none; }   /* a caption nobody filled in */
 /* Quotes are marked by a large red opening quotation mark hanging in the
    left margin, in place of the red bar they used to have. The mark is drawn
    by CSS, so writers never type it and it can't end up doubled or missing.
@@ -1059,6 +1060,8 @@ table.posts tbody tr:hover { background: rgba(26,15,5,0.03); }
 .editor-body img { border: var(--line); border-radius: var(--radius-card); width: 100%; }
 .editor-body figure { margin: 8px 0; }
 .editor-body figcaption { font-family: var(--font-sans); font-size: 13px; color: var(--ttt-muted); text-align: center; margin-top: 8px; }
+/* the hint is shown, never saved: an empty caption isn't published */
+.editor-body figcaption:empty::before { content: "Add a caption (optional)"; cursor: text; }
 .editor-body hr { border: none; border-top: var(--line); margin: 10px 0; }
 
 /* inline "+" add menu (Medium-style, appears at left of current block) */

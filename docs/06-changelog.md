@@ -236,3 +236,11 @@ Fero said the article builder was "very annoying" — quotes especially. Asked f
 - **#7 Leaving with unsaved changes.** Closing the tab or going back now warns first. A backup timer that could fire after a save, overwrite the status line and write a stale backup, was fixed at the same time.
 - **#8 Confusing dropdowns.** The second dropdown was labelled CATEGORY, but the site calls its sections (Articles, Videos…) categories, and the line under the title said "will publish to the selected category". The dropdown now reads **TOPIC…**, and that line says where the post will appear, e.g. "By Liya Tadele · appears in the Videos section · topic: Opinion". Two dead entries (`opinion`, `review`) were removed from the type map.
 - **One Ctrl+Z per action.** Some edits need several browser commands in a row: turning bullets off, inserting a quote, Enter inside a quote. Each command used to be its own undo step, so one Ctrl+Z left them half undone. They're now grouped, so Ctrl+Z (and Ctrl+Shift+Z / Ctrl+Y to redo) handles the whole action. Normal typing undo is untouched.
+
+## Photo captions no longer publish "Add a caption (optional)" (2026-10-09)
+A new photo's caption used to be the actual words "Add a caption (optional)". If the writer didn't replace them, they were published under the photo. Now:
+- The caption starts empty. The editor still *shows* the same grey hint while it's empty, so it looks exactly as before, but the hint is never saved.
+- Saving runs the body through `cleanCaptions`, which also empties the old hint text in drafts made before this fix. Opening an old draft or post does the same.
+- The article page hides a caption with nothing in it (`.prose figcaption:empty`).
+- Checked the database first: the one published post ("Humans, We Feel - Julie") had no hint text in it, so nothing live needed cleaning.
+- Small tidy-up found while testing: the photo "uploading" fade left an empty `style=""` on saved photos. It's now set and removed as a plain attribute, which leaves nothing behind.
