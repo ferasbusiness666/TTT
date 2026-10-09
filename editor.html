@@ -329,7 +329,12 @@
      * as a normal paragraph (any text after the caret comes down with you),
      * and Shift+Enter still gives a line break inside the quote. Enter on an
      * empty quote turns it back into a plain line; Backspace at the very
-     * start does the same, keeping the text, like the toolbar's Quote toggle. */
+     * start does the same, keeping the text, like the toolbar's Quote toggle.
+     *
+     * Every change goes through execCommand, never direct DOM edits. An
+     * earlier version moved nodes by hand, and Ctrl+Z then skipped the Enter
+     * entirely and erased the quote's text instead. Moving the caret is not
+     * an edit, so that alone is done directly. */
     function quoteAtCaret() {
       var blk = currentBlock();
       return blk && blk.tagName === "BLOCKQUOTE" ? blk : null;
@@ -342,12 +347,15 @@
       return r.toString();
     }
 
-    function quoteToParagraph(q) {
-      var p = document.createElement("p");
-      while (q.firstChild) p.appendChild(q.firstChild);
-      if (p.textContent.trim() === "" && !p.querySelector("img")) p.innerHTML = "<br>";
-      q.parentNode.replaceChild(p, q);
-      return p;
+    function textAfterCaret(blk, range) {
+      var r = document.createRange();
+      r.selectNodeContents(blk);
+      r.setStart(range.endContainer, range.endOffset);
+      return r.toString();
+    }
+
+    function isBlankLine(el) {
+      return !!el && el.tagName === "P" && el.textContent.trim() === "" && !el.querySelector("img");
     }
 
     body.addEventListener("keydown", function (e) {
@@ -362,43 +370,44 @@
       if (e.key === "Backspace") {
         if (!range.collapsed || textBeforeCaret(q, range) !== "") return;
         e.preventDefault();
-        placeCaret(quoteToParagraph(q), true);
+        document.execCommand("formatBlock", false, "p");
         dirty(); updateAddMenu();
         return;
       }
 
-      if (e.shiftKey) return;            // Shift+Enter: line break inside the quote
+      if (e.shiftKey) return;                       // line break inside the quote
       e.preventDefault();
-      if (!range.collapsed) range.deleteContents();
+      if (!range.collapsed) {
+        document.execCommand("delete");
+        q = quoteAtCaret();
+        if (!q) { document.execCommand("insertParagraph"); dirty(); updateAddMenu(); return; }
+        range = sel.getRangeAt(0);
+      }
+
+      var next = q.nextElementSibling;
 
       if (q.textContent.trim() === "") {
-        // Enter on an empty quote: it simply becomes a normal line. If the
-        // spare line added beneath a new quote is right there and still empty,
-        // use that instead, rather than leaving two blank lines behind.
-        var next = q.nextElementSibling;
-        if (next && next.tagName === "P" && next.textContent.trim() === "" && !next.querySelector("img")) {
-          q.parentNode.removeChild(q);
-          placeCaret(next, true);
-        } else {
-          placeCaret(quoteToParagraph(q), true);
+        // Empty quote: it becomes a plain line, and swallows the spare blank
+        // line beneath it if there is one, so you don't get two.
+        document.execCommand("formatBlock", false, "p");
+        if (isBlankLine(next)) document.execCommand("forwardDelete");
+      } else if (textAfterCaret(q, range) === "" && isBlankLine(next)) {
+        // At the end with a blank line already waiting: just step into it.
+        placeCaret(next, true);
+      } else if (textBeforeCaret(q, range) === "") {
+        // At the very start: open a normal line above, stay in the quote.
+        document.execCommand("insertParagraph");     // the browser adds an empty quote above
+        var here = quoteAtCaret();
+        var above = here && here.previousElementSibling;
+        if (above && above.tagName === "BLOCKQUOTE" && above.textContent.trim() === "") {
+          placeCaret(above, true);
+          document.execCommand("formatBlock", false, "p");
+          placeCaret(here, true);
         }
-      } else if (textBeforeCaret(q, range).trim() === "") {
-        // Caret at the very start: open a normal line above, stay in the quote.
-        var above = document.createElement("p");
-        above.innerHTML = "<br>";
-        q.parentNode.insertBefore(above, q);
-        placeCaret(q, true);
       } else {
-        // Anywhere else: end the quote here; the rest becomes a paragraph.
-        var tail = document.createRange();
-        tail.selectNodeContents(q);
-        tail.setStart(range.endContainer, range.endOffset);
-        var p = document.createElement("p");
-        p.appendChild(tail.extractContents());
-        if (p.textContent.trim() === "" && !p.querySelector("img")) p.innerHTML = "<br>";
-        if (q.lastChild && q.lastChild.nodeName === "BR" && q.textContent.trim() !== "") q.removeChild(q.lastChild);
-        q.parentNode.insertBefore(p, q.nextSibling);
-        placeCaret(p, true);
+        // Anywhere else: split here, and the second half is a paragraph.
+        document.execCommand("insertParagraph");     // the browser splits into two quotes
+        if (quoteAtCaret()) document.execCommand("formatBlock", false, "p");
       }
       dirty(); updateAddMenu();
     });
@@ -421,30 +430,26 @@
       });
     });
 
-    /* The old version inserted the words "Type a quote…" as real text, so
-     * whatever you typed got glued in front of them, and it left the empty
-     * line you clicked + on behind as a gap above the quote. Now that empty
-     * line becomes the quote itself, it starts genuinely empty (the red
-     * quotation mark shows you're in one), and a quote that ends up last
-     * gets a normal line beneath it so there is always somewhere to go. */
+    /* "+ -> Quote". The old version inserted the words "Type a quote…" as
+     * real text, so whatever you typed got glued in front of them, and it
+     * left the empty line you clicked + on behind as a gap above the quote.
+     * Now that empty line itself becomes the quote, genuinely empty (the red
+     * quotation mark shows you're in one), and a quote that would end up last
+     * gets a normal line beneath it so there is always somewhere to go.
+     *
+     * Done with the browser's own editing commands rather than by moving DOM
+     * nodes, so it lands in the undo history like typing does -- Ctrl+Z puts
+     * the line back the way it was. */
     function insertQuote() {
       var ref = savedBlock || currentBlock();
-      var q = document.createElement("blockquote");
-      q.innerHTML = "<br>";
-      if (ref && ref.parentNode === body && ref.tagName === "P" &&
-          ref.textContent.trim() === "" && !ref.querySelector("img")) {
-        body.replaceChild(q, ref);
-      } else if (ref && ref.parentNode === body) {
-        body.insertBefore(q, ref.nextSibling);
-      } else {
-        body.appendChild(q);
+      if (!ref || ref.parentNode !== body) { ensureParagraph(); ref = body.lastElementChild; }
+      placeCaret(ref, true);
+      if (!ref.nextElementSibling) {
+        document.execCommand("insertParagraph");          // the spare line beneath
+        var cur = currentBlock();
+        placeCaret((cur && cur.previousElementSibling) || ref, true);
       }
-      if (!q.nextElementSibling) {
-        var after = document.createElement("p");
-        after.innerHTML = "<br>";
-        body.insertBefore(after, q.nextSibling);
-      }
-      placeCaret(q, true);
+      document.execCommand("formatBlock", false, "blockquote");
       dirty(); updateAddMenu();
     }
 
