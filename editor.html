@@ -322,6 +322,87 @@
     });
     body.addEventListener("input", dirty);
 
+    /* ---------- quotes: Enter leaves, Backspace at the start un-quotes ----------
+     * Left to the browser, every Enter inside a <blockquote> made another
+     * quote -- even Enter on an empty line -- so there was no way out with
+     * the keyboard. A quote here is one block: Enter ends it and carries on
+     * as a normal paragraph (any text after the caret comes down with you),
+     * and Shift+Enter still gives a line break inside the quote. Enter on an
+     * empty quote turns it back into a plain line; Backspace at the very
+     * start does the same, keeping the text, like the toolbar's Quote toggle. */
+    function quoteAtCaret() {
+      var blk = currentBlock();
+      return blk && blk.tagName === "BLOCKQUOTE" ? blk : null;
+    }
+
+    function textBeforeCaret(blk, range) {
+      var r = document.createRange();
+      r.selectNodeContents(blk);
+      r.setEnd(range.startContainer, range.startOffset);
+      return r.toString();
+    }
+
+    function quoteToParagraph(q) {
+      var p = document.createElement("p");
+      while (q.firstChild) p.appendChild(q.firstChild);
+      if (p.textContent.trim() === "" && !p.querySelector("img")) p.innerHTML = "<br>";
+      q.parentNode.replaceChild(p, q);
+      return p;
+    }
+
+    body.addEventListener("keydown", function (e) {
+      if (e.isComposing) return;
+      if (e.key !== "Enter" && e.key !== "Backspace") return;
+      var q = quoteAtCaret();
+      if (!q) return;
+      var sel = getSelection();
+      if (!sel.rangeCount) return;
+      var range = sel.getRangeAt(0);
+
+      if (e.key === "Backspace") {
+        if (!range.collapsed || textBeforeCaret(q, range) !== "") return;
+        e.preventDefault();
+        placeCaret(quoteToParagraph(q), true);
+        dirty(); updateAddMenu();
+        return;
+      }
+
+      if (e.shiftKey) return;            // Shift+Enter: line break inside the quote
+      e.preventDefault();
+      if (!range.collapsed) range.deleteContents();
+
+      if (q.textContent.trim() === "") {
+        // Enter on an empty quote: it simply becomes a normal line. If the
+        // spare line added beneath a new quote is right there and still empty,
+        // use that instead, rather than leaving two blank lines behind.
+        var next = q.nextElementSibling;
+        if (next && next.tagName === "P" && next.textContent.trim() === "" && !next.querySelector("img")) {
+          q.parentNode.removeChild(q);
+          placeCaret(next, true);
+        } else {
+          placeCaret(quoteToParagraph(q), true);
+        }
+      } else if (textBeforeCaret(q, range).trim() === "") {
+        // Caret at the very start: open a normal line above, stay in the quote.
+        var above = document.createElement("p");
+        above.innerHTML = "<br>";
+        q.parentNode.insertBefore(above, q);
+        placeCaret(q, true);
+      } else {
+        // Anywhere else: end the quote here; the rest becomes a paragraph.
+        var tail = document.createRange();
+        tail.selectNodeContents(q);
+        tail.setStart(range.endContainer, range.endOffset);
+        var p = document.createElement("p");
+        p.appendChild(tail.extractContents());
+        if (p.textContent.trim() === "" && !p.querySelector("img")) p.innerHTML = "<br>";
+        if (q.lastChild && q.lastChild.nodeName === "BR" && q.textContent.trim() !== "") q.removeChild(q.lastChild);
+        q.parentNode.insertBefore(p, q.nextSibling);
+        placeCaret(p, true);
+      }
+      dirty(); updateAddMenu();
+    });
+
     addToggle.addEventListener("click", function (e) {
       e.preventDefault();
       addMenu.classList.toggle("open");
@@ -335,10 +416,37 @@
         var kind = btn.getAttribute("data-add");
         addMenu.classList.remove("open");
         if (kind === "image") { document.getElementById("body-input").click(); }
-        else if (kind === "quote") { insertBlock('<blockquote>Type a quote…</blockquote>'); }
+        else if (kind === "quote") { insertQuote(); }
         else if (kind === "divider") { insertBlock('<hr><p><br></p>'); }
       });
     });
+
+    /* The old version inserted the words "Type a quote…" as real text, so
+     * whatever you typed got glued in front of them, and it left the empty
+     * line you clicked + on behind as a gap above the quote. Now that empty
+     * line becomes the quote itself, it starts genuinely empty (the red
+     * quotation mark shows you're in one), and a quote that ends up last
+     * gets a normal line beneath it so there is always somewhere to go. */
+    function insertQuote() {
+      var ref = savedBlock || currentBlock();
+      var q = document.createElement("blockquote");
+      q.innerHTML = "<br>";
+      if (ref && ref.parentNode === body && ref.tagName === "P" &&
+          ref.textContent.trim() === "" && !ref.querySelector("img")) {
+        body.replaceChild(q, ref);
+      } else if (ref && ref.parentNode === body) {
+        body.insertBefore(q, ref.nextSibling);
+      } else {
+        body.appendChild(q);
+      }
+      if (!q.nextElementSibling) {
+        var after = document.createElement("p");
+        after.innerHTML = "<br>";
+        body.insertBefore(after, q.nextSibling);
+      }
+      placeCaret(q, true);
+      dirty(); updateAddMenu();
+    }
 
     function insertBlock(html) {
       var ref = savedBlock || currentBlock();
