@@ -1072,6 +1072,7 @@ table.posts tbody tr:hover { background: rgba(26,15,5,0.03); }
 .add-menu.open .add-toggle svg { transform: rotate(45deg); }
 .add-actions { position: absolute; left: 50px; top: 0; display: none; gap: 8px; }
 .add-menu.open .add-actions { display: flex; }
+.add-menu.is-inline .add-actions { left: auto; right: 50px; }   /* phones: + sits at the line's right end */
 .add-actions button {
   width: 42px; height: 42px; border-radius: 50%; border: var(--line); background: var(--ttt-paper);
   display: grid; place-items: center; cursor: pointer; color: var(--ttt-dark);
@@ -1216,7 +1217,10 @@ table.posts tbody tr:hover { background: rgba(26,15,5,0.03); }
 @media (max-width: 620px) {
   .filter-bar .spacer { display: none; }
   .byline-row .share { margin-left: 0; }
-  .editor-top .save-state { display: none; }
+  /* the save status gets its own small row under the buttons instead of
+     disappearing -- it's how you know your work is saved */
+  .editor-top { flex-wrap: wrap; row-gap: 4px; }
+  .editor-top .save-state { order: 10; flex-basis: 100%; text-align: right; font-size: 12px; }
 }
 
 @media (max-width: 480px) {

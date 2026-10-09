@@ -76,8 +76,8 @@
             <option value="artwork">ART &amp; PHOTOGRAPHY</option>
             <option value="magazines">MAGAZINES</option>
           </select>
-          <select class="editor-select" id="category-select" aria-label="Category">
-            <option value="">CATEGORY…</option>
+          <select class="editor-select" id="category-select" aria-label="Topic">
+            <option value="">TOPIC…</option>
             <!-- topical categories filled from the DB (loadCategories) -->
           </select>
           <button class="editor-cover-btn" id="cover-btn" type="button">
@@ -106,7 +106,7 @@
         <span class="editor-cover-remove" id="cover-remove">✕ Remove cover</span>
       </div>
 
-      <div class="editor-metaline">By Liya G. Tadele · will publish to the selected category</div>
+      <div class="editor-metaline">By Liya G. Tadele · appears in the Articles section</div>
 
       <!-- the writable body -->
       <div class="editor-body" id="body" contenteditable="true" spellcheck="true"
@@ -311,7 +311,13 @@
       var bRect = blk.getBoundingClientRect();
       addMenu.style.display = "block";
       addMenu.style.top = (bRect.top - cRect.top + (bRect.height - 40) / 2) + "px";
-      addMenu.style.left = (bRect.left - cRect.left - 52) + "px";
+      // On a phone there's no margin beside the text for the button -- it
+      // ended up off the left edge of the screen -- so it sits at the right
+      // end of the empty line instead, and its choices open to the left.
+      var left = bRect.left - cRect.left - 52;
+      var inline = left < 0;
+      addMenu.classList.toggle("is-inline", inline);
+      addMenu.style.left = (inline ? bRect.right - cRect.left - 40 : left) + "px";
     }
 
     ["keyup", "click", "input"].forEach(function (ev) {
@@ -394,11 +400,13 @@
       var sel = getSelection();
       if (!sel.rangeCount) return;
       var range = sel.getRangeAt(0);
+      var steps = 0;                                  // for one-Ctrl+Z undo
+      function cmd(name, ui, value) { document.execCommand(name, ui, value); steps++; }
 
       if (e.key === "Backspace") {
         if (!range.collapsed || textBeforeCaret(q, range) !== "") return;
         e.preventDefault();
-        document.execCommand("formatBlock", false, "p");
+        cmd("formatBlock", false, "p");
         dirty(); updateAddMenu();
         return;
       }
@@ -406,9 +414,9 @@
       if (e.shiftKey) return;                       // line break inside the quote
       e.preventDefault();
       if (!range.collapsed) {
-        document.execCommand("delete");
+        cmd("delete");
         q = quoteAtCaret();
-        if (!q) { document.execCommand("insertParagraph"); dirty(); updateAddMenu(); return; }
+        if (!q) { cmd("insertParagraph"); groupSteps(steps); dirty(); updateAddMenu(); return; }
         range = sel.getRangeAt(0);
       }
 
@@ -417,26 +425,27 @@
       if (q.textContent.trim() === "") {
         // Empty quote: it becomes a plain line, and swallows the spare blank
         // line beneath it if there is one, so you don't get two.
-        document.execCommand("formatBlock", false, "p");
-        if (isBlankLine(next)) document.execCommand("forwardDelete");
+        cmd("formatBlock", false, "p");
+        if (isBlankLine(next)) cmd("forwardDelete");
       } else if (textAfterCaret(q, range) === "" && isBlankLine(next)) {
         // At the end with a blank line already waiting: just step into it.
         placeCaret(next, true);
       } else if (textBeforeCaret(q, range) === "") {
         // At the very start: open a normal line above, stay in the quote.
-        document.execCommand("insertParagraph");     // the browser adds an empty quote above
+        cmd("insertParagraph");     // the browser adds an empty quote above
         var here = quoteAtCaret();
         var above = here && here.previousElementSibling;
         if (above && above.tagName === "BLOCKQUOTE" && above.textContent.trim() === "") {
           placeCaret(above, true);
-          document.execCommand("formatBlock", false, "p");
+          cmd("formatBlock", false, "p");
           placeCaret(here, true);
         }
       } else {
         // Anywhere else: split here, and the second half is a paragraph.
-        document.execCommand("insertParagraph");     // the browser splits into two quotes
-        if (quoteAtCaret()) document.execCommand("formatBlock", false, "p");
+        cmd("insertParagraph");     // the browser splits into two quotes
+        if (quoteAtCaret()) cmd("formatBlock", false, "p");
       }
+      groupSteps(steps);
       dirty(); updateAddMenu();
     });
 
@@ -472,12 +481,15 @@
       var ref = savedBlock || currentBlock();
       if (!ref || ref.parentNode !== body) { ensureParagraph(); ref = body.lastElementChild; }
       placeCaret(ref, true);
+      var steps = 1;
       if (!ref.nextElementSibling) {
         document.execCommand("insertParagraph");          // the spare line beneath
+        steps++;
         var cur = currentBlock();
         placeCaret((cur && cur.previousElementSibling) || ref, true);
       }
       document.execCommand("formatBlock", false, "blockquote");
+      groupSteps(steps);
       dirty(); updateAddMenu();
     }
 
@@ -648,6 +660,276 @@
         uploading--;
         toast(err.message || "Couldn’t upload that image");
       });
+    });
+
+    /* ---------- pasting ----------
+     * Left to the browser, a paste from Google Docs or Word brought the
+     * source's fonts, colours, sizes and highlights along as hidden styles,
+     * and its photos still pointed at Google's servers -- which the article
+     * page won't load, so they vanished on publish. A paste is now rebuilt
+     * from scratch with only what this editor makes itself: paragraphs,
+     * H2/H3, quotes, bullet lists, bold, italic, links and photos. Photos
+     * that come as actual image data are uploaded, like + -> Image; photos
+     * that only link to another site are left out, with a note saying to
+     * add them with +. */
+    var PASTE_BLOCK = /^(P|DIV|H[1-6]|BLOCKQUOTE|LI|TABLE|THEAD|TBODY|TFOOT|TR|TD|TH|CAPTION|SECTION|ARTICLE|HEADER|FOOTER|MAIN|ASIDE|NAV|ADDRESS|CENTER|DL|DT|DD|FIGCAPTION|PRE)$/;
+    var PASTE_SKIP = /^(SCRIPT|STYLE|META|LINK|TITLE|HEAD|NOSCRIPT|TEMPLATE|IFRAME|OBJECT|EMBED|SVG|MATH|BUTTON|INPUT|SELECT|TEXTAREA|VIDEO|AUDIO|CANVAS)$/;
+    var CAPTION_HTML = "<figcaption>Add a caption (optional)</figcaption>";
+    var pasteSeq = 0;
+
+    function escText(s) {
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function escAttr(s) { return escText(s).replace(/"/g, "&quot;"); }
+    function trimLine(h) { return h.replace(/^(?:\s|&nbsp;|<br>)+/, "").replace(/(?:\s|&nbsp;|<br>)+$/, ""); }
+    function hasText(h) { return h.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim() !== ""; }
+
+    // Google Docs marks bold and italic with inline styles, not <b>/<i>, and
+    // wraps the whole paste in a <b style="font-weight:normal">.
+    function pastedBold(el) {
+      var w = (el.style && el.style.fontWeight || "").toLowerCase();
+      if (w) return w === "bold" || w === "bolder" || parseInt(w, 10) >= 600;
+      return el.tagName === "B" || el.tagName === "STRONG";
+    }
+    function pastedItalic(el) {
+      var s = (el.style && el.style.fontStyle || "").toLowerCase();
+      if (s) return s === "italic" || s === "oblique";
+      return el.tagName === "I" || el.tagName === "EM";
+    }
+    function pastedHref(el) {
+      if (el.tagName !== "A") return null;
+      var h = (el.getAttribute("href") || "").trim();
+      return /^(https?:|mailto:)/i.test(h) ? h : null;
+    }
+
+    function dataUrlToFile(src) {
+      var m = /^data:(image\/[a-z0-9.+-]+);base64,([\s\S]*)$/i.exec(src);
+      if (!m) return null;
+      try {
+        var bin = atob(m[2].replace(/\s+/g, "")), bytes = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return new File([bytes], "pasted." + m[1].split("/")[1].replace("jpeg", "jpg"), { type: m[1].toLowerCase() });
+      } catch (e) { return null; }
+    }
+
+    /* A photo to upload once it's in the page: shown straight away from the
+     * device, tagged so it can be found again after the insert. */
+    function pendingFigure(file, job, caption) {
+      var problem = window.tttUpload.validate(file);
+      if (problem) { job.problem = problem; return ""; }
+      var id = "paste-" + (++pasteSeq), preview = URL.createObjectURL(file);
+      job.images.push({ id: id, file: file, preview: preview });
+      return '<figure><img src="' + preview + '" alt="" data-paste="' + id + '">' +
+             (caption ? "<figcaption>" + escText(caption) + "</figcaption>" : CAPTION_HTML) + "</figure>";
+    }
+
+    function pastedFigure(img, job, caption) {
+      var src = (img.getAttribute("src") || "").trim();
+      if (/^https:\/\/res\.cloudinary\.com\//i.test(src)) {          // already ours
+        return '<figure><img src="' + escAttr(src) + '" alt="">' +
+               (caption ? "<figcaption>" + escText(caption) + "</figcaption>" : CAPTION_HTML) + "</figure>";
+      }
+      var file = /^data:image\//i.test(src) ? dataUrlToFile(src) : null;
+      if (!file) { job.dropped++; return ""; }
+      return pendingFigure(file, job, caption);
+    }
+
+    function cleanPastedHTML(html, job) {
+      var doc = new DOMParser().parseFromString(html, "text/html");
+      var out = [], line = "", lineTag = "p";
+
+      function flush() {
+        var h = trimLine(line);
+        line = "";
+        if (hasText(h)) out.push("<" + lineTag + ">" + h + "</" + lineTag + ">");
+      }
+
+      function addText(text, ctx) {
+        var t = ctx.pre ? text : text.replace(/[ \t\n\r\f]+/g, " ");
+        if (line === "") {
+          t = t.replace(/^[ \t\n\r\f]+/, "");
+          if (!t) return;
+          if (!ctx.item) lineTag = ctx.tag;
+        }
+        var h = escText(t);
+        if (ctx.pre) h = h.replace(/\r?\n/g, "<br>");
+        if (ctx.italic) h = "<em>" + h + "</em>";
+        if (ctx.bold && !ctx.heading) h = "<strong>" + h + "</strong>";
+        if (ctx.href) h = '<a href="' + escAttr(ctx.href) + '">' + h + "</a>";
+        line += h;
+      }
+
+      // Lists come out flat (this editor has no nested bullets): a nested
+      // list's items simply follow the item they were under.
+      function list(el, ctx) {
+        var items = [], after = [];
+        (function collect(listEl) {
+          Array.prototype.forEach.call(listEl.children, function (li) {
+            if (li.tagName === "UL" || li.tagName === "OL") { collect(li); return; }
+            if (li.tagName !== "LI") return;
+            var nested = [];
+            line = "";
+            walk(li, { tag: "li", bold: ctx.bold, italic: ctx.italic, href: ctx.href, item: true, nested: nested, after: after });
+            var h = trimLine(line);
+            line = "";
+            if (hasText(h)) items.push("<li>" + h + "</li>");
+            nested.forEach(collect);
+          });
+        })(el);
+        var t = el.tagName === "OL" ? "ol" : "ul";
+        if (items.length) out.push("<" + t + ">" + items.join("") + "</" + t + ">");
+        out.push.apply(out, after);
+      }
+
+      function walk(node, ctx) {
+        for (var n = node.firstChild; n; n = n.nextSibling) {
+          if (n.nodeType === 3) { addText(n.nodeValue, ctx); continue; }
+          if (n.nodeType !== 1) continue;
+          var tag = n.tagName.toUpperCase();
+          if (PASTE_SKIP.test(tag)) continue;
+          if (/mso-list:\s*ignore/i.test(n.getAttribute("style") || "")) continue;   // Word's fake bullets
+          if (tag === "BR") { if (line !== "") line += "<br>"; continue; }
+
+          if (tag === "IMG" || tag === "FIGURE") {
+            var img = tag === "IMG" ? n : n.querySelector("img");
+            var cap = tag === "FIGURE" && n.querySelector("figcaption");
+            var fig = img ? pastedFigure(img, job, cap ? cap.textContent.trim() : "") : "";
+            if (ctx.item) { if (fig) ctx.after.push(fig); continue; }
+            flush();
+            if (fig) out.push(fig);
+            continue;
+          }
+          if (tag === "HR") { if (!ctx.item) { flush(); out.push("<hr>"); } continue; }
+          if (tag === "UL" || tag === "OL") {
+            if (ctx.item) { ctx.nested.push(n); continue; }
+            flush(); list(n, ctx); continue;
+          }
+
+          var c = {
+            tag: ctx.tag, item: ctx.item, nested: ctx.nested, after: ctx.after, pre: ctx.pre, heading: ctx.heading,
+            bold: ctx.bold || pastedBold(n), italic: ctx.italic || pastedItalic(n), href: ctx.href || pastedHref(n)
+          };
+          var isHeading = /^H[1-6]$/.test(tag);
+          if (ctx.item && (isHeading || PASTE_BLOCK.test(tag) || tag === "BLOCKQUOTE")) {
+            // a paragraph inside a list item: keep its text in the item
+            if (line !== "" && !/<br>$/.test(line)) line += "<br>";
+            walk(n, c);
+            continue;
+          }
+          if (isHeading) {
+            flush();
+            c.tag = (tag === "H1" || tag === "H2") ? "h2" : "h3";
+            c.heading = true;
+            walk(n, c); flush(); continue;
+          }
+          if (tag === "BLOCKQUOTE") { flush(); c.tag = "blockquote"; walk(n, c); flush(); continue; }
+          if (PASTE_BLOCK.test(tag)) {
+            flush();
+            if (tag === "PRE") c.pre = true;
+            walk(n, c); flush(); continue;
+          }
+          walk(n, c);                                 // inline: span, b, i, a, font…
+        }
+      }
+
+      walk(doc.body, { tag: "p" });
+      flush();
+      return out.join("")
+        .replace(/<\/strong><strong>/g, "")
+        .replace(/<\/em><em>/g, "");
+    }
+
+    function plainTextHTML(text) {
+      return text.split(/\r?\n/).filter(function (l) { return l.trim() !== ""; })
+        .map(function (l) { return "<p>" + escText(l.trim()) + "</p>"; }).join("");
+    }
+
+    // Pasting several lines into a bullet adds them as more bullets.
+    // Photos can't sit inside a list, so they're left out.
+    function asListItems(html, job) {
+      var t = document.createElement("template");
+      t.innerHTML = html;
+      var items = [];
+      Array.prototype.forEach.call(t.content.children, function (el) {
+        if (el.tagName === "UL" || el.tagName === "OL") items.push(el.innerHTML);
+        else if (el.tagName === "FIGURE") job.dropped++;
+        else if (el.tagName !== "HR") items.push("<li>" + el.innerHTML + "</li>");
+      });
+      return items.length ? "<ul>" + items.join("") + "</ul>" : "";
+    }
+
+    body.addEventListener("paste", function (e) {
+      var cd = e.clipboardData;
+      if (!cd) return;
+      e.preventDefault();
+
+      var html = cd.getData("text/html");
+      var text = cd.getData("text/plain") ||
+                 (html ? new DOMParser().parseFromString(html, "text/html").body.textContent : "");
+      var blk = currentBlock();
+      var at = getSelection().anchorNode;
+      if (at && at.nodeType === 3) at = at.parentNode;
+      var inItem = !!(at && at.closest && at.closest("li"));
+
+      // In a heading, a quote or a caption a paste is just the words, on one
+      // line. Pasting formatted text there makes the browser wrap it in its
+      // own font and size styles to keep its old look.
+      if ((blk && /^(H2|H3|BLOCKQUOTE)$/.test(blk.tagName)) || (at && at.closest && at.closest("figcaption"))) {
+        var words = text.replace(/\s+/g, " ").trim();
+        if (words) document.execCommand("insertText", false, words);
+        return;
+      }
+
+      var job = { images: [], dropped: 0, problem: null };
+      var files = Array.prototype.filter.call(cd.files || [], function (f) { return /^image\//.test(f.type); });
+      var out = html ? cleanPastedHTML(html, job) : "";
+
+      // Copying a picture gives the file and an <img> pointing back at where
+      // it came from. With no words alongside, use the file itself.
+      if (files.length && !hasText(out)) {
+        job = { images: [], dropped: 0, problem: null };
+        out = files.map(function (f) { return pendingFigure(f, job); }).join("");
+      } else if (!html) {
+        if (!/\n/.test(text.trim())) {                 // a few words: straight into the line
+          if (text) document.execCommand("insertText", false, text);
+          return;
+        }
+        out = plainTextHTML(text);
+      }
+
+      var single = /^<p>([\s\S]*)<\/p>$/.exec(out);
+      if (single && single[1].indexOf("<p>") === -1) {
+        out = single[1];                                // one paragraph joins the line
+      } else if (inItem) {
+        out = asListItems(out, job);
+      } else if (/<\/figure>$|<hr>$/.test(out) && blk && blk.textContent.trim() === "" && !blk.nextElementSibling) {
+        out += "<p><br></p>";                           // somewhere to keep typing
+      }
+      if (out) document.execCommand("insertHTML", false, out);
+
+      job.images.forEach(function (it) {
+        var img = body.querySelector('img[data-paste="' + it.id + '"]');
+        if (!img) { URL.revokeObjectURL(it.preview); return; }
+        uploading++;
+        img.style.opacity = "0.5";                      // reads as "still working"
+        window.tttUpload.upload(it.file).then(function (res) {
+          img.src = res.url;
+          img.removeAttribute("data-paste");
+          img.removeAttribute("style");
+          URL.revokeObjectURL(it.preview);
+          uploading--;
+          dirty();
+        }).catch(function (err) {
+          var fig = img.closest("figure");
+          if (fig) fig.remove();                        // never leave an image that isn't hosted
+          URL.revokeObjectURL(it.preview);
+          uploading--;
+          toast(err.message || "Couldn’t upload that image");
+        });
+      });
+
+      if (job.problem) toast(job.problem);
+      else if (job.dropped) toast("Some photos didn’t paste — add them with the + button");
     });
 
     /* ---------- selection bubble toolbar ---------- */
@@ -951,15 +1233,34 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="assets/ttt-auth.js"></script>
   <script>
+    // ---- the line under the title -------------------------------------
+    // Says where the post will show up. Both dropdowns used to read as
+    // "category", and this line said "will publish to the selected
+    // category" -- but the site calls its sections (Articles, Videos…)
+    // categories, while the second dropdown is only a topic tag.
+    var SECTION_NAMES = { articles: "Articles", videos: "Videos", artwork: "Artwork", magazines: "Magazines" };
+    var metaAuthor = "";
+    function updateMetaline() {
+      var line = document.querySelector(".editor-metaline");
+      var typeSel = document.getElementById("cat-select");
+      var topicSel = document.getElementById("category-select");
+      if (!line || !typeSel) return;
+      var opt = topicSel && topicSel.value ? topicSel.options[topicSel.selectedIndex] : null;
+      var topic = opt ? (opt.getAttribute("data-name") || opt.textContent) : "";
+      line.textContent = (metaAuthor ? "By " + metaAuthor + " · " : "") +
+        "appears in the " + (SECTION_NAMES[typeSel.value] || "Articles") + " section" +
+        (topic ? " · topic: " + topic : "");
+    }
+    document.getElementById("cat-select").addEventListener("change", updateMetaline);
+    document.getElementById("category-select").addEventListener("change", updateMetaline);
+
     // ---- persistence state -------------------------------------------
     var currentPostId = null;       // set when editing an existing post
     var currentPublishedAt = null;  // preserve the original publish date
 
-    // The category dropdown mixes "type" options with a couple of topic
-    // labels. Map it onto the schema's post_type (opinion/review are just
-    // articles for now — a proper category picker is a later, design-gated
-    // step). category_id stays null until that exists.
-    var SELECT_TO_TYPE = { articles: "article", videos: "video", artwork: "artwork", magazines: "magazine", opinion: "article", review: "article" };
+    // The first dropdown is the post's type, i.e. which section of the site
+    // it appears in; the second is its optional topic (category_id).
+    var SELECT_TO_TYPE = { articles: "article", videos: "video", artwork: "artwork", magazines: "magazine" };
     var TYPE_TO_SELECT = { article: "articles", video: "videos", artwork: "artwork", magazine: "magazines" };
 
     function slugify(s) {
@@ -1091,6 +1392,7 @@
           var o = document.createElement("option");
           o.value = c.id;
           o.textContent = String(c.name).toUpperCase();
+          o.setAttribute("data-name", c.name);
           sel.appendChild(o);
         });
       });
@@ -1130,6 +1432,7 @@
         if (d.type) document.getElementById("cat-select").value = d.type;
         var catSel = document.getElementById("category-select");
         if (catSel && d.category !== undefined) catSel.value = d.category;
+        updateMetaline();
         if (d.video) { videoInput.value = d.video; videoWrap.style.display = ""; }
         if (d.cover) {
           coverUrl = d.cover;
@@ -1166,6 +1469,7 @@
         document.getElementById("body").innerHTML = p.body || "";
         document.getElementById("cat-select").value = TYPE_TO_SELECT[p.post_type] || "articles";
         document.getElementById("category-select").value = p.category_id ? String(p.category_id) : "";
+        updateMetaline();
         if (p.video_url) { videoInput.value = p.video_url; videoWrap.style.display = ""; }
         coverUrl = p.cover_image_url || null;
         originalCoverUrl = coverUrl;
@@ -1190,8 +1494,8 @@
         if (window.tttAuth.currentProfile) {
           window.tttAuth.currentProfile().then(function (p) {
             if (!p) return;
-            var line = document.querySelector(".editor-metaline");
-            if (line) line.textContent = "By " + p.full_name + " · will publish to the selected category";
+            metaAuthor = p.full_name;
+            updateMetaline();
           });
         }
         // Categories must be in the dropdown before we try to select one.

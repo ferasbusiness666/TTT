@@ -212,3 +212,27 @@ Liya Tadele's account was created in the Supabase dashboard. Checked rather than
 Nothing was created through code: auth users can only be made with the `service_role` key (never in this repo) or the dashboard, and inserting into `auth.users` by SQL is unsupported and fragile.
 
 **Repo housekeeping, same day.** The working checkout turned out to be an old snapshot on a branch (`claude/affectionate-bell-1fg8ge`) that shared no history with `main`. That branch was rebuilt on top of `main`; its one extra commit (the impeccable skill install) was dropped at Fero's request. The old tip is recoverable only locally, if at all.
+
+## Editor fixes (2026-10-09)
+Fero said the article builder was "very annoying" — quotes especially. Asked for a plain red quotation mark instead of the red bar and a way out of a quote, then an audit; he picked all eight findings to fix. Every change was tested in a real browser, including Ctrl+Z after each one.
+
+- **Quotes.** A quote is now marked by a large red “ in the site's red, not a bar, in the editor and on the article page. Enter ends the quote and carries on as a normal paragraph; Shift+Enter is a line break inside it; Enter on an empty quote or Backspace at its start turns it back into a normal line. "+ → Quote" turns the empty line itself into the quote instead of inserting the words "Type a quote…" and leaving a blank gap above.
+- **#1 Pasting.** A paste from Google Docs or Word used to bring its fonts, colours, sizes and highlights along as hidden styles, and its photos pointed at Google's servers. The article page only loads photos from our Cloudinary, so those photos vanished on publish. Pasted content is now rebuilt with only what the editor makes itself: paragraphs, H2/H3, quotes, bullet lists, bold, italic, links and photos.
+  - Pasted photo files, and photos embedded as image data, are uploaded like "+ → Image".
+  - Photos that only link to another site are left out, with a message saying to add them with +.
+  - Pasting into a heading, quote or caption pastes just the words. Formatted text there made Chrome add its own font and size styles.
+  - Pasting several lines into a bullet adds more bullets.
+- **#2 Save Draft on a live post.** It quietly took the post off the website. On a published post the buttons now read **UNPUBLISH** and **UPDATE →**.
+  - UNPUBLISH asks first.
+  - UPDATE keeps the post live and stays in the editor.
+- **#3 Phone layout.**
+  - The + button sat off the left edge of the screen. On narrow screens it now sits at the right end of the empty line, and its choices open to the left.
+  - The save status was hidden below 620px. It now gets its own small row under the buttons.
+  - On a 320px phone the top bar was already 10px too wide, so Publish was cut off at the edge. It now wraps to a second line instead.
+  - The desktop layout is unchanged.
+- **#4 Bullet lists.** Chrome builds a list *inside* the paragraph it came from (`<p><ul>…</ul></p>`), which isn't valid HTML and left stray gaps on the published page. The • button now builds one clean top-level list. Turning bullets off gives real paragraphs, and the list splits around them; before, it left loose text outside any paragraph.
+- **#5 Divider.** It left the empty line you clicked + on behind as a blank gap above the divider. It now replaces that line.
+- **#6 Empty posts.** An article with no body could be published. Publish now needs some text, a photo or a video link.
+- **#7 Leaving with unsaved changes.** Closing the tab or going back now warns first. A backup timer that could fire after a save, overwrite the status line and write a stale backup, was fixed at the same time.
+- **#8 Confusing dropdowns.** The second dropdown was labelled CATEGORY, but the site calls its sections (Articles, Videos…) categories, and the line under the title said "will publish to the selected category". The dropdown now reads **TOPIC…**, and that line says where the post will appear, e.g. "By Liya Tadele · appears in the Videos section · topic: Opinion". Two dead entries (`opinion`, `review`) were removed from the type map.
+- **One Ctrl+Z per action.** Some edits need several browser commands in a row: turning bullets off, inserting a quote, Enter inside a quote. Each command used to be its own undo step, so one Ctrl+Z left them half undone. They're now grouped, so Ctrl+Z (and Ctrl+Shift+Z / Ctrl+Y to redo) handles the whole action. Normal typing undo is untouched.
