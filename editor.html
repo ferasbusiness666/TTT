@@ -731,6 +731,9 @@
     }
 
     function backupDraft() {
+      // A save already happened since this was scheduled: nothing to protect,
+      // and writing now would overwrite the save's status with a stale one.
+      if (!unsaved) return;
       try {
         localStorage.setItem(draftKey(), JSON.stringify(snapshot()));
         saveState.textContent = "Draft · backed up on this device";
@@ -745,7 +748,19 @@
       try { localStorage.removeItem(DRAFT_KEY_PREFIX + (id || currentPostId || "new")); } catch (e) {}
     }
 
+    /* Anything typed since the last successful save. Drives the leave-page
+     * warning: closing the tab or clicking DASHBOARD mid-edit used to discard
+     * work silently (the local backup could bring it back, but only if you
+     * knew to reopen the same post). */
+    var unsaved = false;
+    window.addEventListener("beforeunload", function (e) {
+      if (!unsaved) return;
+      e.preventDefault();
+      e.returnValue = "";   // browsers show their own wording; this just asks
+    });
+
     function dirty() {
+      unsaved = true;
       saveState.textContent = "Draft · unsaved changes";
       clearTimeout(t);
       clearTimeout(draftTimer);
@@ -753,7 +768,21 @@
     }
     // Save/Publish persist to the `posts` table. savePost() is defined in
     // the auth-aware block at the bottom (where the Supabase client lives).
-    document.getElementById("save-draft").addEventListener("click", function () { savePost("draft"); });
+    /* The left button used to be SAVE DRAFT whatever the post's state, and
+     * saving a draft sets status = draft -- so tidying a typo in a published
+     * story quietly took it off the website. Now a live post gets UNPUBLISH
+     * (which asks first) and UPDATE, which saves and keeps it live. */
+    var currentStatus = null;          // null for a new post, else the saved status
+    function updateActionButtons() {
+      var live = currentStatus === "published";
+      document.getElementById("save-draft").textContent = live ? "UNPUBLISH" : "SAVE DRAFT";
+      document.getElementById("publish").textContent    = live ? "UPDATE →"  : "PUBLISH →";
+    }
+    document.getElementById("save-draft").addEventListener("click", function () {
+      if (currentStatus === "published" &&
+          !window.confirm("Take this story off the website? It will be kept as a draft.")) return;
+      savePost("draft");
+    });
     document.getElementById("publish").addEventListener("click", function () { savePost("published"); });
 
     /* ---------- tiny toast ---------- */
@@ -809,6 +838,19 @@
       var client = window.tttAuth && window.tttAuth.client;
       if (!client) { toast("Not connected — try again in a moment"); return; }
 
+      // A title alone was enough to publish, so an empty story could go live.
+      // A video post may be just the video, so a video link counts as content.
+      if (status === "published") {
+        var bodyEl = document.getElementById("body");
+        var hasContent = bodyEl.textContent.trim() !== "" ||
+                         bodyEl.querySelector("img") || videoInput.value.trim() !== "";
+        if (!hasContent) {
+          toast("Write something before publishing");
+          bodyEl.focus();
+          return;
+        }
+      }
+
       var saveBtn = document.getElementById("save-draft");
       var pubBtn  = document.getElementById("publish");
       var catEl   = document.getElementById("category-select");
@@ -830,6 +872,7 @@
       // status text, and disable both buttons so one click does one thing.
       saving = true;
       clearTimeout(t);
+      clearTimeout(draftTimer);   // a backup due a moment from now is moot once this lands
       saveBtn.disabled = true;
       pubBtn.disabled = true;
       saveState.textContent = status === "published" ? "Publishing…" : "Saving…";
@@ -865,11 +908,24 @@
           window.tttUpload.deleteImages([originalCoverUrl]);
         }
         originalCoverUrl = coverUrl;
-        if (status === "published") {
+        var wasLive = currentStatus === "published";
+        currentStatus = status;
+        unsaved = false;
+        updateActionButtons();
+        if (status === "published" && wasLive) {
+          // Editing a live story: stay put so further fixes don't need a reopen.
+          saveState.textContent = "Published · updated ✓";
+          toast("Changes are live ★");
+          release();
+        } else if (status === "published") {
           saveState.textContent = "Published ✓";
           toast("Published “" + title + "” ★");
           setTimeout(function () { window.location.href = "admin.html"; }, 800);
           // stay disabled through the redirect
+        } else if (wasLive) {
+          saveState.textContent = "Draft · taken off the site";
+          toast("Taken off the site — kept as a draft");
+          release();
         } else {
           saveState.textContent = "Draft · saved just now ✓";
           toast("Draft saved ★");
@@ -942,6 +998,7 @@
         grow(document.getElementById("deck"));
         bar.hidden = true;
         saveState.textContent = "Draft · restored, not yet saved";
+        unsaved = true;
         toast("Draft restored — save it to keep it ★");
       });
 
@@ -977,6 +1034,8 @@
         grow(document.getElementById("title"));
         grow(document.getElementById("deck"));
         saveState.textContent = p.status === "published" ? "Published ✓" : "Draft · saved";
+        currentStatus = p.status;
+        updateActionButtons();
         document.title = "Edit · " + (p.title || "post") + " — Tadele Teen Talks";
       });
     }
