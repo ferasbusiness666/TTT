@@ -144,7 +144,7 @@
         var type   = p.post_type || "article";
         var label  = TYPE_LABEL[type] || "Articles";
         var color  = TYPE_COLOR[type] || "var(--card-blue)";
-        var author = (p.author && p.author.full_name) || "TTT Staff";
+        var author = (p.author_name && p.author_name.trim()) || (p.author && p.author.full_name) || "TTT Staff";
         var date   = fmtDate(p.published_at || p.created_at);
         var slug   = p.slug || "";
         var toggle = (p.status === "published")
@@ -187,7 +187,7 @@
       var client = window.tttAuth && window.tttAuth.client;
       if (!client) return;
       client.from("posts")
-        .select("id, title, excerpt, slug, post_type, status, published_at, created_at, cover_image_url, author:profiles(full_name)")
+        .select("id, title, excerpt, slug, post_type, status, published_at, created_at, cover_image_url, author_name, author:profiles(full_name)")
         .order("created_at", { ascending: false })
         .then(function (r) {
           ROWS = (r && r.data) || [];

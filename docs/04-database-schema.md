@@ -120,7 +120,11 @@ create table public.posts (
   status text not null default 'draft' check (status in ('draft', 'published')),
   published_at timestamptz,
   created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  updated_at timestamptz not null default now(),
+  -- optional byline typed in the editor; when set, the site prints it
+  -- instead of the posting account's name (added 2026-11-11, migration
+  -- add_post_author_name)
+  author_name text check (author_name is null or char_length(author_name) <= 80)
 );
 
 create index posts_category_id_idx on public.posts (category_id);

@@ -49,7 +49,10 @@
     var t = "f_auto,q_auto" + (width ? ",w_" + width + ",c_limit" : "");
     return url.replace("/image/upload/", "/image/upload/" + t + "/");
   }
-  function author(p) { return (p.author && p.author.full_name) || "TTT Staff"; }
+  // A name typed in the editor's "By …" box wins over the posting account.
+  function author(p) {
+    return (p.author_name && p.author_name.trim()) || (p.author && p.author.full_name) || "TTT Staff";
+  }
   function label(p) {
     return String((p.category && p.category.name) || TYPE_LABEL[p.post_type] || "STORY").toUpperCase();
   }
@@ -188,7 +191,7 @@
   function fetchPosts(client, opts) {
     opts = opts || {};
     var q = client.from("posts")
-      .select("id, title, slug, excerpt, cover_image_url, video_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name)")
+      .select("id, title, slug, excerpt, cover_image_url, video_url, post_type, published_at, created_at, author_name, category:categories(name), author:profiles(full_name)")
       .eq("status", "published");
     if (opts.type) q = q.eq("post_type", opts.type);
     /* The gallery wall is a wall of pictures — a post with no cover would

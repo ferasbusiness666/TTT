@@ -289,7 +289,7 @@
 
       function query() {
         var base = client.from("posts")
-          .select("id, title, slug, excerpt, cover_image_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name)",
+          .select("id, title, slug, excerpt, cover_image_url, post_type, published_at, created_at, author_name, category:categories(name), author:profiles(full_name)",
                   { count: "exact" })
           .eq("status", "published");
 

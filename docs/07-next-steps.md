@@ -35,7 +35,10 @@ Quotes (red “ instead of the bar, Enter leaves the quote) plus all eight audit
 
 **Found while doing it, not fixed (outside what was asked):**
 - ~~**Photo captions publish their placeholder.**~~ **Fixed the same day**, see `06-changelog.md`.
-- **The byline flashes "Liya G. Tadele" before the real name loads.** It's a leftover from the mockup in `editor.html`'s static HTML. The page stays hidden until sign-in is checked, so this is rarely visible.
+- ~~**The byline flashes "Liya G. Tadele" before the real name loads.**~~ Gone since the author-name box replaced that static text (2026-11-11).
+
+## Done — author name per post (2026-11-11)
+The "By …" line in the editor is now a box: leave it empty for the account's own name, or type someone else's to credit them (Liya posting a writer's piece). Stored in `posts.author_name`; every byline on the site uses it. Details in `06-changelog.md`.
 
 ## Cloudflare 2FA — Google 2FA done, Cloudflare's own declined for now
 Fero couldn't enable Cloudflare 2FA: he signs in with **Google SSO**, so the account has no password, and the change-password form asks for an old one that never existed. Cloudflare's SSO docs give the way round — *"If a user does not have a password, they can use the forgot password method on the login page to create one"* — then Profile → Authentication → Two-Factor Authentication → Set up.

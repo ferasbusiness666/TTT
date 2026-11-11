@@ -268,7 +268,7 @@
       }
 
       client.from("posts")
-        .select("title, excerpt, body, cover_image_url, video_url, post_type, published_at, created_at, category:categories(name), author:profiles(full_name)")
+        .select("title, excerpt, body, cover_image_url, video_url, post_type, published_at, created_at, author_name, category:categories(name), author:profiles(full_name)")
         .eq("slug", slug).maybeSingle()
         .then(function (r) {
           var p = r && r.data;
@@ -286,7 +286,8 @@
             return;
           }
 
-          var author = (p.author && p.author.full_name) || "TTT Staff";
+          // a name typed in the editor's "By …" box wins over the posting account
+          var author = (p.author_name && p.author_name.trim()) || (p.author && p.author.full_name) || "TTT Staff";
           var cat = (p.category && p.category.name) || null;
 
           document.title = p.title + " — Tadele Teen Talks";

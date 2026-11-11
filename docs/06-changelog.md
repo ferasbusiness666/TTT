@@ -244,3 +244,17 @@ A new photo's caption used to be the actual words "Add a caption (optional)". If
 - The article page hides a caption with nothing in it (`.prose figcaption:empty`).
 - Checked the database first: the one published post ("Humans, We Feel - Julie") had no hint text in it, so nothing live needed cleaning.
 - Small tidy-up found while testing: the photo "uploading" fade left an empty `style=""` on saved photos. It's now set and removed as a plain attribute, which leaves nothing behind.
+
+## Author name per post (2026-11-11)
+Liya needed to publish other people's articles from her own account, but the site always printed the name of the account that posted. Now the "By …" line under the title in the editor is a box (Fero chose this placement over a separate field):
+- **Empty** means the account's own name, shown in the box as a placeholder. Nothing to do for normal posts.
+- **Type a name** to credit someone else. That name is what readers see everywhere a byline appears: article byline and initials, the author box, Google's article data (JSON-LD), homepage and archive cards, the gallery, "More from TTT", and the admin desk list.
+- Clearing the box goes back to the account's name.
+- When editing someone else's post, the default shown is the *posting* account's name, not the editor's.
+- The name is kept in the device backup and restored with the draft.
+
+**Database:** migration `add_post_author_name` adds `posts.author_name` (text, at most 80 characters, nullable). The table-level grants already cover the new column: readers can see it, staff can write it, and RLS is unchanged. It was applied before the code went live, so no query ever asked for a column that didn't exist. All four page queries were checked against the live API afterwards.
+
+**Not a privacy feature:** the posting account is still recorded in `author_id`, and its name can still be read through the API, as before. Only the printed byline changes.
+
+Also removes the hardcoded "Liya G. Tadele" mockup text that briefly showed in the editor's byline before the real name loaded.

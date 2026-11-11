@@ -1042,6 +1042,16 @@ table.posts tbody tr:hover { background: rgba(26,15,5,0.03); }
 .editor-cover .media { border: var(--line); border-radius: var(--radius-card); }
 .editor-cover-remove { display: inline-flex; align-items: center; gap: 6px; margin-top: 8px; font-family: var(--font-sans); font-size: 13px; color: var(--ttt-red); cursor: pointer; }
 .editor-metaline { max-width: 740px; margin: 12px auto 0; padding: 0 var(--pad-page); font-family: var(--font-sans); font-size: 13px; color: var(--ttt-muted); }
+/* the author name in "By …" -- a box you can type over to credit someone else */
+.editor-byline { display: inline-flex; align-items: center; gap: 4px; max-width: 100%; margin-right: 3px; cursor: text; }
+.editor-byline input {
+  font: inherit; color: var(--ttt-dark); background: transparent; border: none; outline: none;
+  border-bottom: 1.5px dashed var(--ttt-muted); border-radius: 0; padding: 0 1px; margin: 0;
+  min-width: 3em; max-width: 100%;
+}
+.editor-byline input::placeholder { color: var(--ttt-dark); opacity: 1; }
+.editor-byline input:focus { border-bottom: 1.5px solid var(--ttt-red); }
+.editor-byline svg { width: 11px; height: 11px; flex: none; color: var(--ttt-muted); }
 
 /* the writable body */
 .editor-body {
