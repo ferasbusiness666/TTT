@@ -258,3 +258,9 @@ Liya needed to publish other people's articles from her own account, but the sit
 **Not a privacy feature:** the posting account is still recorded in `author_id`, and its name can still be read through the API, as before. Only the printed byline changes.
 
 Also removes the hardcoded "Liya G. Tadele" mockup text that briefly showed in the editor's byline before the real name loaded.
+
+## Fix: new pages showing with old styles after an update (2026-11-11)
+Right after the author box went live, Fero's editor showed it unstyled: a plain bordered box, and the pencil icon blown up to fill the screen. The page was new but the browser used its saved old stylesheet. The caching rule from the performance pass (`stale-while-revalidate`) hands back the saved copy first and fetches the new one in the background, so the first visit after any update mixes new pages with old styles or scripts.
+- CSS and JS (`/assets/*`) now use `Cache-Control: no-cache`. The browser still keeps its copy but always checks it's current first, which costs a tiny "not changed" reply.
+- Images keep the faster rule, since an old photo can't break a layout.
+- The pencil icon also has its size written into the page, so it can't blow up even without styles.

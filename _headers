@@ -46,15 +46,19 @@
 # navigation -- a round trip per asset, on the mobile connections that
 # matter most here.
 #
-# These filenames are NOT content-hashed (no build step), so a long
-# max-age would serve stale code after a deploy. Five minutes fresh plus a
-# day of stale-while-revalidate kills the per-navigation round trips
-# within a session while keeping any change visible within minutes: the
-# browser serves the cached copy instantly and refreshes it in the
-# background. If the site ever gains hashed filenames, these can go to a
-# year with immutable.
+# CSS and JS (/assets/*) are the exception: they must always match the
+# page. Pages themselves are never cached, and these filenames are NOT
+# content-hashed (no build step), so any caching here can pair a fresh
+# page with yesterday's stylesheet. stale-while-revalidate did exactly
+# that on 2026-11-11: the first visit after a deploy got the new editor
+# HTML with the old CSS, and an unstyled icon filled the screen. no-cache
+# still lets the browser keep its copy, but it checks first (a tiny 304
+# when nothing changed), so code and page always match.
+#
+# Images keep the cached rule: a stale photo can't break a layout. If the
+# site ever gains hashed filenames, assets can go to a year with immutable.
 /assets/*
-  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+  Cache-Control: no-cache
 
 /images/*
   Cache-Control: public, max-age=300, stale-while-revalidate=86400
