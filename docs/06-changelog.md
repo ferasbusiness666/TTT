@@ -277,3 +277,9 @@ With 19 posts now live, the agreed blocker before submitting to Google was done 
 - **The old hand-written file is gone.** It had only the 7 fixed pages, and four of its links were `.html` addresses that redirect.
 - **Tested** locally against sample data, odd characters, a 500, a thrown error, a timeout and a HEAD request, then against the live database: 26 URLs, valid XML.
 - Fero sent the URL-prefix HTML tag; it's now in the `<head>` of `index.html` with a note not to remove it (removing it un-verifies the property).
+
+## Ije Ezedani removed from the founders (2026-11-26)
+At Fero's request, Ije Ezedani is no longer listed as a co-founder.
+- **Homepage:** the card is gone. Liya Tadele's card is now centred at the same width the cards always had (~311px), instead of sitting in the left half of a two-column grid. Phones still show it full width.
+- **Also updated:** `llms.txt` (the site summary for AI crawlers) and the overview and SEO docs.
+- **Unchanged and worth a decision:** Liya's card still says **Co-CEO** and the heading still says **MEET THE FOUNDERS** (plural).

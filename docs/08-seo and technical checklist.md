@@ -41,7 +41,7 @@ Grounded in what's actually confirmed about TTT — not generic filler.
 A teen-run news and media organization giving young people a platform to share unfiltered stories, ideas, and opinions.
 
 **Who's behind it?**
-TTT is led by two co-CEOs, Ije Ezedani and Liya Tadele, along with a team of teen contributors across writing, video, art, and social media.
+TTT is led by Liya Tadele, along with a team of teen contributors across writing, video, art, and social media.
 
 **What kind of content do you publish?**
 Articles, videos, artwork, and photo essays, organized by topic — Opinion, News, Culture, Reviews, and more.

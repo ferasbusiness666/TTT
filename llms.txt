@@ -1,9 +1,8 @@
 # Tadele Teen Talks
 
 > A teen-run news and media platform sharing unfiltered stories, ideas, and
-> opinions from young voices, ages 13-21. Run by two co-CEOs, Ije Ezedani and
-> Liya Tadele, with a team of teen contributors across writing, video, art and
-> social media.
+> opinions from young voices, ages 13-21. Run by Liya Tadele, with a team of
+> teen contributors across writing, video, art and social media.
 
 ## Pages
 

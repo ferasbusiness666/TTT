@@ -3,7 +3,7 @@
 **What this is:** The website for Tadele Teen Talks (TTT), a teen-run news and media organization. Built by a volunteer, not a professional dev team — Claude Code does the implementation work.
 
 **Who's involved:**
-- Two co-CEOs: Ije Ezedani and Liya Tadele
+- Liya Tadele, shown on the site as the founder (Co-CEO). Ije Ezedani was originally listed as the second co-CEO and was removed from the site at Fero's request on 2026-11-26.
 - A team of teen contributors across departments (Writing, Vlogging, Creative, Social Media & Communications, etc.)
 - The visual design (UI) was already built separately using Claude Design, before any backend work started
 
