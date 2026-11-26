@@ -264,3 +264,15 @@ Right after the author box went live, Fero's editor showed it unstyled: a plain 
 - CSS and JS (`/assets/*`) now use `Cache-Control: no-cache`. The browser still keeps its copy but always checks it's current first, which costs a tiny "not changed" reply.
 - Images keep the faster rule, since an old photo can't break a layout.
 - The pencil icon also has its size written into the page, so it can't blow up even without styles.
+
+## Sitemap generated from the database; Search Console explained (2026-11-26)
+Fero asked why indexing was "gone" in Search Console.
+- **It never existed.** No verification tag had ever been added for this site.
+- **The property type he picked couldn't work.** He chose a "Domain" property, which needs a DNS record, and `pages.dev` is Cloudflare's domain, so only Cloudflare can add one. A **URL-prefix** property verified with an HTML tag is the way. Steps are in `07-next-steps.md`.
+- **The site itself was always open to Google:** no `noindex`, and `robots.txt` allows it.
+
+With 19 posts now live, the agreed blocker before submitting to Google was done too:
+- **`/sitemap.xml` is now a Pages Function.** It lists the fixed public pages plus every published post at its canonical `/article?post=` address, with `lastmod`.
+- **It fails safe:** if the database is down or slow, it serves the fixed pages and caches that for five minutes.
+- **The old hand-written file is gone.** It had only the 7 fixed pages, and four of its links were `.html` addresses that redirect.
+- **Tested** locally against sample data, odd characters, a 500, a thrown error, a timeout and a HEAD request, then against the live database: 26 URLs, valid XML.
