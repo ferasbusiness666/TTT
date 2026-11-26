@@ -276,3 +276,4 @@ With 19 posts now live, the agreed blocker before submitting to Google was done 
 - **It fails safe:** if the database is down or slow, it serves the fixed pages and caches that for five minutes.
 - **The old hand-written file is gone.** It had only the 7 fixed pages, and four of its links were `.html` addresses that redirect.
 - **Tested** locally against sample data, odd characters, a 500, a thrown error, a timeout and a HEAD request, then against the live database: 26 URLs, valid XML.
+- Fero sent the URL-prefix HTML tag; it's now in the `<head>` of `index.html` with a note not to remove it (removing it un-verifies the property).

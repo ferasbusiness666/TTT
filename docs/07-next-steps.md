@@ -150,7 +150,7 @@ Fero first added `tadeleteentalk.pages.dev` as a **Domain** property. That asks 
 3. Choose the **HTML tag** method and send Claude the `<meta name="google-site-verification" …>` line. It goes in the `<head>` of `index.html` only, since Google checks the homepage. It's a public token, not a secret.
 4. Once it's live, press Verify, then Sitemaps → submit `sitemap.xml`.
 
-**Status:** waiting on Fero's tag.
+**Status (2026-11-26):** the tag is in `index.html`'s `<head>` (token `bynCXLHVJT1vzwXXwL0KMhEa7-K86kBCw20GVXb7O7U`). **Do not remove it** — Google re-checks periodically and the property un-verifies if it disappears. Next: Fero presses Verify, then submits `sitemap.xml`.
 
 ## Done — visitor analytics (Cloudflare Web Analytics, 2026-08-24)
 Free, unlimited, cookieless, no consent banner needed. Reports page views, unique visitors, referrers, countries, top pages and Core Web Vitals.
