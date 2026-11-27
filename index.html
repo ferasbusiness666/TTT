@@ -804,15 +804,30 @@ button { font: inherit; }
 </style>
 <link rel="icon" href="/favicon.ico" sizes="any" />
 <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32.png" />
+<!-- Google shows a site's icon in search results only if it's a multiple of
+     48px square; the 32px one above is too small for that. -->
+<link rel="icon" type="image/png" sizes="192x192" href="/images/icon-192.png" />
 <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
 <meta name="description" content="A teen-run news and media platform sharing unfiltered stories, opinions, and creative work from young voices." />
 <meta property="og:title" content="Tadele Teen Talks" />
 <meta property="og:description" content="A teen-run news and media platform sharing unfiltered stories, opinions, and creative work from young voices." />
 <meta property="og:image" content="https://tadeleteentalk.pages.dev/images/og-cover.png" />
 <meta property="og:type" content="website" />
+<meta property="og:site_name" content="Tadele Teen Talks" />
 <meta name="twitter:card" content="summary_large_image" />
 
 <link rel="canonical" href="https://tadeleteentalk.pages.dev/" />
+<!-- WebSite data tells Google the site's name. Without it, a pages.dev
+     address is labelled "Cloudflare" in search results. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "Tadele Teen Talks",
+  "alternateName": ["TTT", "Tadele Teen Talk"],
+  "url": "https://tadeleteentalk.pages.dev/"
+}
+</script>
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",

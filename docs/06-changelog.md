@@ -283,3 +283,6 @@ At Fero's request, Ije Ezedani is no longer listed as a co-founder.
 - **Homepage:** the card is gone. Liya Tadele's card is now centred at the same width the cards always had (~311px), instead of sitting in the left half of a two-column grid. Phones still show it full width.
 - **Also updated:** `llms.txt` (the site summary for AI crawlers) and the overview and SEO docs.
 - **Unchanged and worth a decision:** Liya's card still says **Co-CEO** and the heading still says **MEET THE FOUNDERS** (plural).
+
+## Search result name and icon (2026-11-27)
+Google listed the site as "Cloudflare" with a generic globe icon. On a shared `pages.dev` address Google falls back to the domain owner's name unless the site states its own, and it only shows icons that are a multiple of 48px square (ours were 32px and the `.ico`). Added a `WebSite` JSON-LD block (`name: Tadele Teen Talks`), `og:site_name`, and a 192×192 icon (`images/icon-192.png`, scaled from `icon-512.png`). Google updates these on its own schedule, usually within days to a few weeks after recrawling the homepage.
